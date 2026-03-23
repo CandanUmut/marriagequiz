@@ -20,7 +20,14 @@
     "loading": "Yükleniyor...",
     "error": "Bir şeyler ters gitti",
     "learnMore": "Daha Fazla Bilgi",
-    "privacyNote": "Verileriniz asla cihazınızdan çıkmaz"
+    "privacyNote": "Verileriniz asla cihazınızdan çıkmaz",
+    "edit": "Düzenle",
+    "backToResults": "Sonuçlara Dön",
+    "submitAndView": "Gönder ve Sonuçları Gör",
+    "reviewAnswers": "Cevaplarını Gözden Geçir",
+    "allAnswered": "Tümü Yanıtlandı",
+    "incomplete": "Eksik",
+    "dealBreakerMarked": "Vazgeçilmez işaretli"
   },
   "landing": {
     "heroTitle": "Bu bir tanışma uygulaması değil.\nBu bir ayna.",

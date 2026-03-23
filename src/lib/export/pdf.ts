@@ -7,145 +7,192 @@ type Locale = 'en' | 'tr';
 
 /**
  * Generate and download a PDF report of the profile results.
- * Uses dynamic imports for html2canvas and jsPDF to avoid SSR issues.
+ * Uses html2canvas to render HTML content as an image-based PDF,
+ * which preserves all browser font rendering including Turkish characters.
  */
 export async function generatePDF(
   profile: ProfileResult,
   locale: Locale = 'en'
 ): Promise<void> {
+  const { default: html2canvas } = await import('html2canvas');
   const { default: jsPDF } = await import('jspdf');
 
-  const doc = new jsPDF('p', 'mm', 'a4');
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const margin = 20;
-  const contentWidth = pageWidth - margin * 2;
-  let y = margin;
+  const t = (en: string, tr: string) => (locale === 'en' ? en : tr);
 
-  // Helper to add text with wrapping
-  const addText = (text: string, fontSize: number, isBold = false, color = '#1c4f48') => {
-    doc.setFontSize(fontSize);
-    doc.setTextColor(color);
-    if (isBold) doc.setFont('helvetica', 'bold');
-    else doc.setFont('helvetica', 'normal');
-    const lines = doc.splitTextToSize(text, contentWidth);
-    doc.text(lines, margin, y);
-    y += lines.length * (fontSize * 0.4) + 4;
-  };
+  // Build the HTML content in a hidden container
+  const container = document.createElement('div');
+  container.style.cssText = `
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    width: 794px;
+    background: #ffffff;
+    font-family: system-ui, -apple-system, sans-serif;
+    color: #1c4f48;
+    padding: 48px;
+    box-sizing: border-box;
+  `;
 
-  const addNewPage = () => {
-    doc.addPage();
-    y = margin;
-  };
+  const dealBreakers = profile.dimensions.filter((d) => d.dealBreaker);
 
-  // Cover page
-  y = 60;
-  addText('Hayırlısı', 28, true, '#2d9a89');
-  y += 5;
-  addText(
-    locale === 'en'
-      ? 'Marriage Compatibility Profile'
-      : 'Evlilik Uyumu Profili',
-    18,
-    false,
-    '#5a5046'
-  );
-  y += 10;
-  addText(
-    locale === 'en'
-      ? `Generated: ${new Date(profile.completedAt).toLocaleDateString('en-US')}`
-      : `Oluşturulma: ${new Date(profile.completedAt).toLocaleDateString('tr-TR')}`,
-    11,
-    false,
-    '#857563'
-  );
+  container.innerHTML = `
+    <div style="border-bottom: 4px solid #2d9a89; padding-bottom: 24px; margin-bottom: 32px;">
+      <h1 style="margin: 0 0 8px 0; font-size: 36px; color: #2d9a89;">Hayırlısı</h1>
+      <p style="margin: 0 0 4px 0; font-size: 20px; color: #5a5046;">
+        ${t('Marriage Compatibility Profile', 'Evlilik Uyumu Profili')}
+      </p>
+      <p style="margin: 0; font-size: 13px; color: #857563;">
+        ${t(
+          `Generated: ${new Date(profile.completedAt).toLocaleDateString('en-US')}`,
+          `Oluşturulma: ${new Date(profile.completedAt).toLocaleDateString('tr-TR')}`
+        )}
+      </p>
+    </div>
 
-  // Profile type
-  y += 20;
-  addText(
-    locale === 'en' ? 'Your Profile Type' : 'Profil Tipiniz',
-    14,
-    true,
-    '#2d9a89'
-  );
-  addText(
-    locale === 'en' ? profile.typeDescription.en : profile.typeDescription.tr,
-    11,
-    false,
-    '#5a5046'
-  );
+    <div style="margin-bottom: 28px;">
+      <h2 style="margin: 0 0 8px 0; font-size: 18px; color: #2d9a89;">
+        ${t('Your Profile Type', 'Profil Tipiniz')}
+      </h2>
+      <p style="margin: 0; font-size: 14px; color: #5a5046; line-height: 1.5;">
+        ${t(profile.typeDescription.en, profile.typeDescription.tr)}
+      </p>
+    </div>
 
-  // Honesty calibration
-  y += 10;
-  addText(
-    locale === 'en' ? 'Honesty Calibration' : 'Dürüstlük Kalibrasyonu',
-    14,
-    true,
-    '#2d9a89'
-  );
-  addText(
-    `${locale === 'en' ? 'Score' : 'Puan'}: ${profile.honestyCalibration.score}/100`,
-    11,
-    false,
-    '#5a5046'
-  );
-  addText(
-    `${locale === 'en' ? 'Consistency' : 'Tutarlılık'}: ${profile.overallConsistency}/100`,
-    11,
-    false,
-    '#5a5046'
-  );
+    <div style="margin-bottom: 28px;">
+      <h2 style="margin: 0 0 8px 0; font-size: 18px; color: #2d9a89;">
+        ${t('Honesty Calibration', 'Dürüstlük Kalibrasyonu')}
+      </h2>
+      <p style="margin: 0 0 4px 0; font-size: 14px; color: #5a5046;">
+        ${t('Score', 'Puan')}: ${profile.honestyCalibration.score}/100
+      </p>
+      <p style="margin: 0; font-size: 14px; color: #5a5046;">
+        ${t('Consistency', 'Tutarlılık')}: ${profile.overallConsistency}/100
+      </p>
+    </div>
 
-  // Dimension details
-  addNewPage();
-  addText(
-    locale === 'en' ? 'Dimension Breakdown' : 'Boyut Detayları',
-    18,
-    true,
-    '#2d9a89'
-  );
-  y += 5;
+    <div style="margin-bottom: 28px;">
+      <h2 style="margin: 0 0 16px 0; font-size: 20px; color: #2d9a89;">
+        ${t('Dimension Breakdown', 'Boyut Detayları')}
+      </h2>
+      ${profile.dimensions
+        .map((dim) => {
+          const catDef = categoryDefinitions[dim.categoryId];
+          const name = t(catDef?.nameEn ?? dim.categoryId, catDef?.nameTr ?? dim.categoryId);
+          const labels = t(
+            'Position|Importance|Flexibility|Consistency',
+            'Pozisyon|Önem|Esneklik|Tutarlılık'
+          ).split('|');
+          return `
+            <div style="margin-bottom: 16px; padding: 12px 16px; background: #f8f7f4; border-radius: 8px; border-left: 4px solid ${catDef?.color || '#2d9a89'};">
+              <div style="font-size: 15px; font-weight: bold; color: ${catDef?.color || '#2d9a89'}; margin-bottom: 6px;">
+                ${name}${dim.dealBreaker ? ' <span style="color: #dc4020; font-size: 13px;">⚠ ' + t('Deal-Breaker', 'Kırmızı Çizgi') + '</span>' : ''}
+              </div>
+              <div style="font-size: 12px; color: #5a5046;">
+                ${labels[0]}: ${dim.selfScore} &nbsp;|&nbsp; ${labels[1]}: ${dim.importanceScore} &nbsp;|&nbsp; ${labels[2]}: ${dim.flexibilityScore} &nbsp;|&nbsp; ${labels[3]}: ${dim.consistencyScore}
+              </div>
+            </div>
+          `;
+        })
+        .join('')}
+    </div>
 
-  for (const dim of profile.dimensions) {
-    if (y > 250) addNewPage();
+    <div style="margin-bottom: 28px;">
+      <h2 style="margin: 0 0 12px 0; font-size: 20px; color: #dc4020;">
+        ${t('Deal-Breakers', 'Kırmızı Çizgiler')}
+      </h2>
+      ${
+        dealBreakers.length > 0
+          ? dealBreakers
+              .map((dim) => {
+                const catDef = categoryDefinitions[dim.categoryId];
+                const name = t(catDef?.nameEn ?? dim.categoryId, catDef?.nameTr ?? dim.categoryId);
+                return `
+                  <div style="margin-bottom: 10px; padding: 10px 14px; background: #fef2f2; border-radius: 6px; border-left: 4px solid #dc4020;">
+                    <div style="font-size: 14px; font-weight: bold; color: #dc4020; margin-bottom: 2px;">⚠ ${name}</div>
+                    <div style="font-size: 12px; color: #5a5046;">
+                      ${t('This is non-negotiable for you.', 'Bu sizin için vazgeçilmezdir.')}
+                    </div>
+                  </div>
+                `;
+              })
+              .join('')
+          : `<p style="margin: 0; font-size: 14px; color: #5a5046; line-height: 1.5;">
+               ${t(
+                 'No absolute deal-breakers selected. Your profile shows high flexibility.',
+                 'Kesin kırmızı çizgi seçilmedi. Profiliniz yüksek esneklik gösteriyor.'
+               )}
+             </p>`
+      }
+    </div>
 
-    const catDef = categoryDefinitions[dim.categoryId];
-    const name = locale === 'en' ? catDef?.nameEn : catDef?.nameTr;
+    <div style="margin-top: 40px; padding-top: 16px; border-top: 1px solid #e8e4db;">
+      <p style="margin: 0; font-size: 11px; color: #b0a08a;">
+        ${t(
+          'Generated by Hayırlısı — Open Source Marriage Compatibility Tool',
+          'Hayırlısı tarafından oluşturuldu — Açık Kaynak Evlilik Uyumu Aracı'
+        )}
+      </p>
+    </div>
+  `;
 
-    addText(name || dim.categoryId, 13, true, catDef?.color || '#2d9a89');
+  document.body.appendChild(container);
 
-    const labels = locale === 'en'
-      ? ['Position', 'Importance', 'Flexibility', 'Consistency']
-      : ['Pozisyon', 'Önem', 'Esneklik', 'Tutarlılık'];
+  try {
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+    });
 
-    addText(
-      `${labels[0]}: ${dim.selfScore}  |  ${labels[1]}: ${dim.importanceScore}  |  ${labels[2]}: ${dim.flexibilityScore}  |  ${labels[3]}: ${dim.consistencyScore}`,
-      10,
-      false,
-      '#5a5046'
-    );
+    const imgData = canvas.toDataURL('image/png');
+    const imgWidth = canvas.width;
+    const imgHeight = canvas.height;
 
-    if (dim.dealBreaker) {
-      addText(
-        locale === 'en' ? '⚠ Deal-Breaker' : '⚠ Kırmızı Çizgi',
-        10,
-        true,
-        '#dc4020'
-      );
+    // A4 dimensions in mm
+    const pdfWidth = 210;
+    const pdfHeight = 297;
+
+    const contentWidth = pdfWidth;
+    const contentHeight = (imgHeight * contentWidth) / imgWidth;
+
+    const doc = new jsPDF('p', 'mm', 'a4');
+
+    // If content fits on one page
+    if (contentHeight <= pdfHeight) {
+      doc.addImage(imgData, 'PNG', 0, 0, contentWidth, contentHeight);
+    } else {
+      // Split across multiple pages
+      const pageCanvasHeight = (pdfHeight * imgWidth) / contentWidth;
+      let remainingHeight = imgHeight;
+      let sourceY = 0;
+
+      while (remainingHeight > 0) {
+        const sliceHeight = Math.min(pageCanvasHeight, remainingHeight);
+
+        // Create a slice canvas for this page
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = imgWidth;
+        pageCanvas.height = sliceHeight;
+        const pageCtx = pageCanvas.getContext('2d')!;
+        pageCtx.drawImage(
+          canvas,
+          0, sourceY, imgWidth, sliceHeight,
+          0, 0, imgWidth, sliceHeight
+        );
+
+        const pageImgData = pageCanvas.toDataURL('image/png');
+        const sliceDisplayHeight = (sliceHeight * contentWidth) / imgWidth;
+
+        if (sourceY > 0) doc.addPage();
+        doc.addImage(pageImgData, 'PNG', 0, 0, contentWidth, sliceDisplayHeight);
+
+        sourceY += sliceHeight;
+        remainingHeight -= sliceHeight;
+      }
     }
-    y += 4;
+
+    doc.save(`hayirlisi-profile-${profile.id}.pdf`);
+  } finally {
+    document.body.removeChild(container);
   }
-
-  // Footer
-  addNewPage();
-  y = 250;
-  addText(
-    locale === 'en'
-      ? 'Generated by Hayırlısı — Open Source Marriage Compatibility Tool'
-      : 'Hayırlısı tarafından oluşturuldu — Açık Kaynak Evlilik Uyumu Aracı',
-    9,
-    false,
-    '#b0a08a'
-  );
-
-  doc.save(`hayirlisi-profile-${profile.id}.pdf`);
 }

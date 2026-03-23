@@ -119,13 +119,52 @@ export function hasDealBreaker(
 
 /**
  * Calculate consistency score for honesty calibration.
- * Checks paired questions (same honestyPairId) for consistency.
+ * Uses standard deviation, deal-breaker alignment, honesty pairs, and extreme responding.
  */
 export function calculateConsistencyScore(
   questions: Question[],
   answers: Record<string, QuizAnswer>
 ): number {
-  // Find honesty pairs
+  // Collect numeric answer values for answered questions
+  const answeredValues: number[] = [];
+  for (const q of questions) {
+    const answer = answers[q.id];
+    if (!answer) continue;
+    const val = typeof answer.value === 'number' ? answer.value : null;
+    if (val !== null) answeredValues.push(val);
+  }
+
+  // If literally no answered questions, return a neutral default
+  if (answeredValues.length === 0) return 85;
+
+  let score = 100;
+
+  // 1. Standard deviation check (pattern responding vs scattered)
+  const mean = answeredValues.reduce((a, b) => a + b, 0) / answeredValues.length;
+  const variance =
+    answeredValues.reduce((sum, v) => sum + (v - mean) ** 2, 0) / answeredValues.length;
+  const sd = Math.sqrt(variance);
+
+  if (sd < 0.5) {
+    score -= 12; // Penalty for pattern responding (all answers nearly identical)
+  } else if (sd > 2.0) {
+    score -= 15; // Penalty for highly scattered answers
+  }
+
+  // 2. Deal-breaker vs importance alignment
+  // If a question has dealBreakerFollowUp AND user marked dealBreaker BUT answer value is low, that's inconsistent
+  let dealBreakerMismatches = 0;
+  for (const q of questions) {
+    const answer = answers[q.id];
+    if (!answer) continue;
+    const val = typeof answer.value === 'number' ? answer.value : null;
+    if (q.dealBreakerFollowUp && answer.dealBreaker && val !== null && val < 3) {
+      dealBreakerMismatches++;
+    }
+  }
+  score -= dealBreakerMismatches * 10;
+
+  // 3. Honesty pair consistency (bonus check when pairs exist)
   const pairs = new Map<string, Question[]>();
   for (const q of questions) {
     if (q.honestyPairId) {
@@ -134,11 +173,6 @@ export function calculateConsistencyScore(
       pairs.set(q.honestyPairId, existing);
     }
   }
-
-  if (pairs.size === 0) return 85; // Default high consistency if no pairs
-
-  let consistencyTotal = 0;
-  let pairCount = 0;
 
   pairs.forEach((pairedQuestions) => {
     if (pairedQuestions.length < 2) return;
@@ -153,15 +187,21 @@ export function calculateConsistencyScore(
 
     if (vals.length < 2) return;
 
-    // Calculate how consistent the paired answers are
     const diff = Math.abs(vals[0] - vals[1]);
-    const maxDiff = 6; // Max possible diff on 1-7 scale
-    consistencyTotal += (1 - diff / maxDiff) * 100;
-    pairCount++;
+    if (diff > 3) {
+      score -= 10; // Penalty per inconsistent honesty pair
+    }
   });
 
-  if (pairCount === 0) return 85;
-  return Math.round(consistencyTotal / pairCount);
+  // 4. Extreme responding check
+  const extremeCount = answeredValues.filter((v) => v === 1 || v === 7).length;
+  const extremeRatio = extremeCount / answeredValues.length;
+  if (extremeRatio > 0.6) {
+    score -= 10;
+  }
+
+  // Clamp to 0-100
+  return Math.max(0, Math.min(100, score));
 }
 
 /**
@@ -171,9 +211,8 @@ export function calculateConsistencyScore(
 export function calculateSocialDesirabilityScore(
   questions: Question[],
   answers: Record<string, QuizAnswer>
-): { score: number; flags: string[] } {
+): { score: number; flags: string[]; socialDesirabilityBias: number; extremeRatio: number; midpointRatio: number } {
   const sdQuestions = questions.filter((q) => q.socialDesirabilityFlag);
-  if (sdQuestions.length === 0) return { score: 100, flags: [] };
 
   let highCount = 0;
   const flags: string[] = [];
@@ -189,11 +228,27 @@ export function calculateSocialDesirabilityScore(
     }
   }
 
-  const ratio = highCount / sdQuestions.length;
+  const sdBias = sdQuestions.length > 0 ? Math.round((highCount / sdQuestions.length) * 100) : 0;
   // Lower score means more social desirability bias
-  const score = Math.round((1 - ratio) * 100);
+  const score = sdQuestions.length > 0 ? Math.round((1 - highCount / sdQuestions.length) * 100) : 100;
 
-  return { score, flags };
+  // Compute extreme and midpoint ratios across all answered questions
+  const answeredValues: number[] = [];
+  for (const q of questions) {
+    const answer = answers[q.id];
+    if (!answer) continue;
+    const val = typeof answer.value === 'number' ? answer.value : null;
+    if (val !== null) answeredValues.push(val);
+  }
+
+  const extremeCount = answeredValues.filter((v) => v === 1 || v === 7).length;
+  const midpointCount = answeredValues.filter((v) => v >= 3 && v <= 5).length;
+  const total = answeredValues.length || 1; // avoid division by zero
+
+  const extremeRatio = Math.round((extremeCount / total) * 100) / 100;
+  const midpointRatio = Math.round((midpointCount / total) * 100) / 100;
+
+  return { score, flags, socialDesirabilityBias: sdBias, extremeRatio, midpointRatio };
 }
 
 /**

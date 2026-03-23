@@ -25,6 +25,7 @@ import { detectBlindSpots } from '@/lib/quiz/scoring';
 import { encodeProfile } from '@/lib/export/share';
 import { generatePDF } from '@/lib/export/pdf';
 import { generateShareImage } from '@/lib/export/image';
+import Link from 'next/link';
 import DimensionCard from './DimensionCard';
 import InsightCard from './InsightCard';
 import type { ProfileResult, BlindSpot } from '@/lib/types/results';
@@ -40,8 +41,8 @@ function getHonestyConfig(score: number) {
       bg: 'bg-green-50 dark:bg-green-900/20',
       border: 'border-green-200 dark:border-green-800',
       Icon: ShieldCheck,
-      labelEn: 'High Honesty',
-      labelTr: 'Yuksek Durustluk',
+      labelEn: 'Authentic & Consistent',
+      labelTr: 'Otantik ve Tutarlı',
     };
   if (score > 60)
     return {
@@ -49,17 +50,59 @@ function getHonestyConfig(score: number) {
       bg: 'bg-yellow-50 dark:bg-yellow-900/20',
       border: 'border-yellow-200 dark:border-yellow-800',
       Icon: ShieldAlert,
-      labelEn: 'Moderate Honesty',
-      labelTr: 'Orta Durustluk',
+      labelEn: 'Mostly Authentic',
+      labelTr: 'Çoğunlukla Otantik',
     };
   return {
     color: 'text-red-600 dark:text-red-400',
     bg: 'bg-red-50 dark:bg-red-900/20',
     border: 'border-red-200 dark:border-red-800',
     Icon: ShieldX,
-    labelEn: 'Low Honesty Score',
-    labelTr: 'Dusuk Durustluk Puani',
+    labelEn: 'Review Suggested',
+    labelTr: 'Gözden Geçirme Önerilir',
   };
+}
+
+function getAuthenticityFeedback(profile: ProfileResult, locale: 'en' | 'tr'): string[] {
+  const feedback: string[] = [];
+
+  // Check extreme ratio (fraction of 1s or 7s)
+  if (profile.honestyCalibration.extremeRatio > 0.5) {
+    feedback.push(
+      locale === 'en'
+        ? 'You selected strong agreement/disagreement on most questions. Consider whether some areas have more nuance for you.'
+        : 'Çoğu soruda güçlü katılma/katılmama seçtiniz. Bazı alanlarda sizin için daha fazla nüans olup olmadığını düşünün.'
+    );
+  }
+
+  // Check overall consistency
+  if (profile.overallConsistency < 60) {
+    feedback.push(
+      locale === 'en'
+        ? 'Some of your answers within categories seem to point in different directions. You might want to revisit those sections.'
+        : 'Kategoriler içindeki bazı yanıtlarınız farklı yönlere işaret ediyor gibi görünüyor. Bu bölümleri tekrar gözden geçirmek isteyebilirsiniz.'
+    );
+  }
+
+  // Check social desirability flags
+  if (profile.honestyCalibration.socialDesirabilityBias > 60) {
+    feedback.push(
+      locale === 'en'
+        ? 'You consistently chose \'ideal\' answers on questions designed to detect social desirability bias. Consider answering as you truly feel, not as you think you should.'
+        : 'Sosyal beğenirlik yanlılığını tespit etmek için tasarlanmış sorularda sürekli olarak \'ideal\' yanıtları seçtiniz. Nasıl hissetmeniz gerektiğini değil, gerçekten nasıl hissettiğinizi yanıtlamayı düşünün.'
+    );
+  }
+
+  // Check midpoint clustering
+  if (profile.honestyCalibration.midpointRatio > 0.6) {
+    feedback.push(
+      locale === 'en'
+        ? 'You chose neutral on many questions. If you genuinely feel neutral, that\'s fine — but sometimes neutral is a way of avoiding commitment to an answer.'
+        : 'Birçok soruda nötr seçtiniz. Gerçekten nötr hissediyorsanız sorun yok — ancak bazen nötr, bir yanıta bağlılıktan kaçınmanın bir yoludur.'
+    );
+  }
+
+  return feedback;
 }
 
 const sectionVariants = {
@@ -81,6 +124,14 @@ export default function ResultsDashboard({ profile }: ResultsDashboardProps) {
   const blindSpots = detectBlindSpots(profile.dimensions);
   const honestyConfig = getHonestyConfig(profile.honestyCalibration.score);
   const HonestyIcon = honestyConfig.Icon;
+  const authenticityFeedback = getAuthenticityFeedback(profile, locale);
+
+  // Determine the first flagged category for the review link
+  const firstFlaggedCategory = profile.honestyCalibration.flags.length > 0
+    ? profile.dimensions.find((dim) =>
+        dim.consistencyScore < 60 || dim.dealBreaker
+      )?.categoryId || profile.dimensions[0]?.categoryId
+    : null;
 
   // Radar chart data
   const radarData = profile.dimensions.map((dim) => {
@@ -128,7 +179,7 @@ export default function ResultsDashboard({ profile }: ResultsDashboardProps) {
   // Labels
   const t = {
     profileType: locale === 'en' ? 'Your Profile' : 'Profiliniz',
-    honesty: locale === 'en' ? 'Honesty Calibration' : 'Durustluk Kalibrasyonu',
+    honesty: locale === 'en' ? 'Response Authenticity' : 'Yanıt Otantikliği',
     honestyScore: locale === 'en' ? 'Score' : 'Puan',
     consistency: locale === 'en' ? 'Consistency' : 'Tutarlilik',
     radarTitle: locale === 'en' ? 'Dimension Overview' : 'Boyut Genel Bakisi',
@@ -147,9 +198,7 @@ export default function ResultsDashboard({ profile }: ResultsDashboardProps) {
     copyCode: locale === 'en' ? 'Copy Code' : 'Kodu Kopyala',
     copied: locale === 'en' ? 'Copied!' : 'Kopyalandi!',
     exporting: locale === 'en' ? 'Exporting...' : 'Disa aktariliyor...',
-    honestyNote: locale === 'en'
-      ? 'This score reflects how consistently and candidly you answered. Higher is better, but no score is inherently bad — it helps calibrate how to read your results.'
-      : 'Bu puan, yanitlarinizin ne kadar tutarli ve samimi oldugunu yansitir. Yuksek daha iyidir, ancak dusuk puan kotu demek degildir — sonuclarinizi nasil okumaniz gerektigini kalibre etmeye yardimci olur.',
+    reviewFlagged: locale === 'en' ? 'Review Flagged Answers' : 'İşaretli Yanıtları Gözden Geçir',
     statedVsRevealed:
       locale === 'en' ? 'Stated vs. Revealed' : 'Belirtilen vs. Ortaya Cikan',
   };
@@ -206,9 +255,27 @@ export default function ResultsDashboard({ profile }: ResultsDashboardProps) {
                   </span>
                 )}
               </div>
-              <p className="text-xs text-sand-500 dark:text-sand-400 leading-relaxed">
-                {t.honestyNote}
-              </p>
+              {authenticityFeedback.length > 0 && (
+                <ul className="mt-2 space-y-1.5">
+                  {authenticityFeedback.map((item, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-xs text-sand-600 dark:text-sand-400 leading-relaxed">
+                      <Lightbulb className="w-3.5 h-3.5 text-golden-500 mt-0.5 shrink-0" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {firstFlaggedCategory && (
+                <div className="mt-3">
+                  <Link
+                    href={`/quiz?edit=${firstFlaggedCategory}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-primary-600 dark:text-primary-400 hover:underline"
+                  >
+                    <ShieldAlert className="w-3.5 h-3.5" />
+                    {t.reviewFlagged}
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </Card>

@@ -97,7 +97,55 @@ export function generateHonestyReport(
     }
   });
 
-  const consistencyScore = pairCount > 0 ? Math.round(totalConsistency / pairCount) : 85;
+  // If honesty pairs exist, use their average. Otherwise, compute from SD + deal-breaker + extreme checks.
+  let consistencyScore: number;
+  if (pairCount > 0) {
+    consistencyScore = Math.round(totalConsistency / pairCount);
+  } else {
+    // Collect numeric answer values
+    const answeredValues: number[] = [];
+    for (const q of questions) {
+      const answer = answers[q.id];
+      if (!answer) continue;
+      const val = typeof answer.value === 'number' ? answer.value : null;
+      if (val !== null) answeredValues.push(val);
+    }
+
+    if (answeredValues.length === 0) {
+      consistencyScore = 85;
+    } else {
+      let csScore = 100;
+
+      // SD check
+      const mean = answeredValues.reduce((a, b) => a + b, 0) / answeredValues.length;
+      const variance =
+        answeredValues.reduce((sum, v) => sum + (v - mean) ** 2, 0) / answeredValues.length;
+      const sd = Math.sqrt(variance);
+      if (sd < 0.5) {
+        csScore -= 12;
+      } else if (sd > 2.0) {
+        csScore -= 15;
+      }
+
+      // Deal-breaker mismatch check
+      for (const q of questions) {
+        const answer = answers[q.id];
+        if (!answer) continue;
+        const val = typeof answer.value === 'number' ? answer.value : null;
+        if (q.dealBreakerFollowUp && answer.dealBreaker && val !== null && val < 3) {
+          csScore -= 10;
+        }
+      }
+
+      // Extreme responding
+      const extremeCount = answeredValues.filter((v) => v === 1 || v === 7).length;
+      if (answeredValues.length > 0 && extremeCount / answeredValues.length > 0.6) {
+        csScore -= 10;
+      }
+
+      consistencyScore = Math.max(0, Math.min(100, csScore));
+    }
+  }
 
   if (inconsistentPairs.length > 0) {
     flags.push({

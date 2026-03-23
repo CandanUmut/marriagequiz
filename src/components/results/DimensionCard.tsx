@@ -2,9 +2,11 @@
 
 import { motion } from 'framer-motion';
 import * as LucideIcons from 'lucide-react';
+import { Pencil } from 'lucide-react';
+import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import ProgressBar from '@/components/ui/ProgressBar';
-import { useLocale } from '@/lib/i18n/config';
+import { useLocale, useTranslations } from '@/lib/i18n/config';
 import { categoryDefinitions } from '@/lib/quiz/categories';
 import type { DimensionScore } from '@/lib/types/results';
 import type { CategoryWeight } from '@/lib/types/quiz';
@@ -63,6 +65,7 @@ function getIcon(iconName: string) {
 
 export default function DimensionCard({ dimension }: DimensionCardProps) {
   const { locale } = useLocale();
+  const t = useTranslations();
   const catDef = categoryDefinitions[dimension.categoryId];
 
   if (!catDef) return null;
@@ -115,14 +118,23 @@ export default function DimensionCard({ dimension }: DimensionCardProps) {
             </div>
           </div>
 
-          {/* Consistency indicator */}
-          <div className="text-right">
-            <span className={`text-xs font-medium ${consistency.className}`}>
-              {locale === 'en' ? consistency.labelEn : consistency.labelTr}
-            </span>
-            <p className="text-[10px] text-sand-400 mt-0.5">
-              {consistencyLabel}: {dimension.consistencyScore}%
-            </p>
+          {/* Consistency indicator + Edit */}
+          <div className="flex items-start gap-2">
+            <div className="text-right">
+              <span className={`text-xs font-medium ${consistency.className}`}>
+                {locale === 'en' ? consistency.labelEn : consistency.labelTr}
+              </span>
+              <p className="text-[10px] text-sand-400 mt-0.5">
+                {consistencyLabel}: {dimension.consistencyScore}%
+              </p>
+            </div>
+            <Link
+              href={`/quiz?edit=${dimension.categoryId}`}
+              className="shrink-0 p-1.5 rounded-lg text-sand-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:text-primary-400 dark:hover:bg-primary-900/20 transition-colors"
+              title={t.common.edit}
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </Link>
           </div>
         </div>
 
