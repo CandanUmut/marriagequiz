@@ -17,6 +17,9 @@ export interface ProfileResult {
   honestyCalibration: {
     score: number;
     flags: string[];
+    socialDesirabilityBias: number;
+    extremeRatio: number;
+    midpointRatio: number;
   };
   typeDescription: {
     en: string;

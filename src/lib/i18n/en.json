@@ -20,7 +20,14 @@
     "loading": "Loading...",
     "error": "Something went wrong",
     "learnMore": "Learn More",
-    "privacyNote": "Your data never leaves your device"
+    "privacyNote": "Your data never leaves your device",
+    "edit": "Edit",
+    "backToResults": "Back to Results",
+    "submitAndView": "Submit & View Results",
+    "reviewAnswers": "Review Your Answers",
+    "allAnswered": "All Answered",
+    "incomplete": "Incomplete",
+    "dealBreakerMarked": "Deal-breaker marked"
   },
   "landing": {
     "heroTitle": "This is not a dating app.\nThis is a mirror.",

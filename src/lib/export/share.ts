@@ -54,7 +54,7 @@ export function decodeProfile(code: string): ProfileResult | null {
         consistencyScore: d.cs,
       })),
       overallConsistency: data.oc || 0,
-      honestyCalibration: { score: data.hc || 0, flags: [] },
+      honestyCalibration: { score: data.hc || 0, flags: [], socialDesirabilityBias: 0, extremeRatio: 0, midpointRatio: 0 },
       typeDescription: { en: '', tr: '' },
       completedAt: data.ca || new Date().toISOString(),
       selectedCategories: data.sc || [],

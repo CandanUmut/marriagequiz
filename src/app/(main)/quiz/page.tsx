@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
-import { AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState, useMemo, useCallback, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuizStore } from '@/lib/store/quizStore';
 import { useResultStore } from '@/lib/store/resultStore';
 import { useLocale, useTranslations } from '@/lib/i18n/config';
@@ -17,12 +17,14 @@ import QuizNavigation from '@/components/quiz/QuizNavigation';
 import HonestyPrompt from '@/components/quiz/HonestyPrompt';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
-import { Play, RotateCcw } from 'lucide-react';
+import { Play, RotateCcw, Check, ShieldAlert, ArrowLeft, Send } from 'lucide-react';
+import { CategoryId } from '@/lib/types/quiz';
 
-type Phase = 'setup' | 'category-intro' | 'question' | 'honesty-nudge';
+type Phase = 'setup' | 'category-intro' | 'question' | 'honesty-nudge' | 'review';
 
-export default function QuizPage() {
+function QuizContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { locale } = useLocale();
   const t = useTranslations();
 
@@ -34,6 +36,7 @@ export default function QuizPage() {
     nextQuestion,
     prevQuestion,
     nextCategory,
+    setCurrentQuestion,
     completeQuiz,
     resetQuiz,
     getAnswer,
@@ -42,8 +45,36 @@ export default function QuizPage() {
 
   const { saveResult } = useResultStore();
 
-  const [phase, setPhase] = useState<Phase>(isStarted ? 'question' : 'setup');
+  // Edit mode: check for ?edit=<categoryId>
+  const editCategoryId = searchParams.get('edit') as CategoryId | null;
+  const editCategoryIndex = editCategoryId
+    ? categoryOrder.indexOf(editCategoryId)
+    : -1;
+  const isEditMode = editCategoryId !== null && editCategoryIndex >= 0;
+
+  // Determine initial phase
+  const getInitialPhase = (): Phase => {
+    if (isEditMode) return 'question';
+    if (isStarted) return 'question';
+    return 'setup';
+  };
+
+  const [phase, setPhase] = useState<Phase>(getInitialPhase);
   const [showCategoryIntro, setShowCategoryIntro] = useState(true);
+  const [editInitialized, setEditInitialized] = useState(false);
+
+  // When entering edit mode, jump to the correct category
+  useEffect(() => {
+    if (isEditMode && !editInitialized) {
+      setCurrentQuestion(editCategoryIndex, 0);
+      // Ensure quiz is marked as started
+      if (!isStarted) {
+        useQuizStore.setState({ isStarted: true });
+      }
+      setPhase('question');
+      setEditInitialized(true);
+    }
+  }, [isEditMode, editCategoryIndex, editInitialized, setCurrentQuestion, isStarted]);
 
   const selectedCategories = progress.selectedCategories;
   const currentCatId = selectedCategories[progress.currentCategoryIndex];
@@ -64,6 +95,13 @@ export default function QuizPage() {
   const categoryProgress = currentQuestions.length > 0
     ? (progress.currentQuestionIndex / currentQuestions.length) * 100
     : 0;
+
+  // Finish edit mode: recalculate and go back to results
+  const finishEditMode = useCallback(() => {
+    const profile = calculateFullProfile(progress.answers, selectedCategories);
+    saveResult(profile);
+    router.push('/results');
+  }, [progress.answers, selectedCategories, saveResult, router]);
 
   const handleStart = useCallback((fresh: boolean) => {
     if (fresh) resetQuiz();
@@ -86,19 +124,24 @@ export default function QuizPage() {
     const isLastQuestionInCategory = progress.currentQuestionIndex >= currentQuestions.length - 1;
     const isLastCategory = progress.currentCategoryIndex >= selectedCategories.length - 1;
 
-    // Check honesty nudge
-    const newAnsweredCount = answeredCount + 1;
-    if (shouldShowHonestyNudge(newAnsweredCount)) {
-      setPhase('honesty-nudge');
+    // In edit mode, when we reach the last question of the edited category, finish
+    if (isEditMode && isLastQuestionInCategory) {
+      finishEditMode();
       return;
     }
 
+    // Check honesty nudge (not in edit mode)
+    if (!isEditMode) {
+      const newAnsweredCount = answeredCount + 1;
+      if (shouldShowHonestyNudge(newAnsweredCount)) {
+        setPhase('honesty-nudge');
+        return;
+      }
+    }
+
     if (isLastQuestionInCategory && isLastCategory) {
-      // Quiz complete
-      completeQuiz();
-      const profile = calculateFullProfile(progress.answers, selectedCategories);
-      saveResult(profile);
-      router.push('/results');
+      // Show review screen instead of completing immediately
+      setPhase('review');
       return;
     }
 
@@ -111,7 +154,7 @@ export default function QuizPage() {
     }
   }, [
     progress, currentQuestions, selectedCategories, answeredCount,
-    completeQuiz, nextCategory, nextQuestion, saveResult, router,
+    isEditMode, finishEditMode, nextCategory, nextQuestion,
   ]);
 
   const handlePrev = useCallback(() => {
@@ -127,10 +170,7 @@ export default function QuizPage() {
     const isLastCategory = progress.currentCategoryIndex >= selectedCategories.length - 1;
 
     if (isLastQuestionInCategory && isLastCategory) {
-      completeQuiz();
-      const profile = calculateFullProfile(progress.answers, selectedCategories);
-      saveResult(profile);
-      router.push('/results');
+      setPhase('review');
     } else if (isLastQuestionInCategory) {
       nextCategory(selectedCategories.length);
       setPhase('category-intro');
@@ -138,10 +178,24 @@ export default function QuizPage() {
     } else {
       nextQuestion(currentQuestions.length);
     }
-  }, [progress, currentQuestions, selectedCategories, completeQuiz, nextCategory, nextQuestion, saveResult, router]);
+  }, [progress, currentQuestions, selectedCategories, nextCategory, nextQuestion]);
+
+  // Handle jumping to a category from the review screen
+  const handleReviewCategoryClick = useCallback((catIndex: number) => {
+    setCurrentQuestion(catIndex, 0);
+    setPhase('question');
+  }, [setCurrentQuestion]);
+
+  // Handle final submission from review screen
+  const handleSubmitFromReview = useCallback(() => {
+    completeQuiz();
+    const profile = calculateFullProfile(progress.answers, selectedCategories);
+    saveResult(profile);
+    router.push('/results');
+  }, [completeQuiz, progress.answers, selectedCategories, saveResult, router]);
 
   // Setup phase
-  if (phase === 'setup' || !isStarted) {
+  if (phase === 'setup' || (!isStarted && !isEditMode)) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16">
         <div className="text-center mb-12">
@@ -213,8 +267,101 @@ export default function QuizPage() {
     );
   }
 
-  // Category intro phase
-  if (phase === 'category-intro' && showCategoryIntro && currentCatId) {
+  // Review phase - shown before final submission
+  if (phase === 'review') {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-16">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl md:text-3xl font-serif font-bold text-sand-900 dark:text-sand-100 mb-2">
+            {t.common.reviewAnswers}
+          </h1>
+          <p className="text-sm text-sand-600 dark:text-sand-400">
+            {locale === 'en'
+              ? 'Review each section before submitting your results.'
+              : 'Sonuclarinizi gondermeden once her bolumu gozden gecirin.'}
+          </p>
+        </div>
+
+        <Card variant="elevated" padding="lg" className="mb-6">
+          <div className="space-y-2">
+            {selectedCategories.map((catId, catIndex) => {
+              const catDef = categoryDefinitions[catId];
+              const name = locale === 'en' ? catDef.nameEn : catDef.nameTr;
+              const catQuestions = questionsByCategory[catId] || [];
+              const answeredInCat = catQuestions.filter(
+                (q) => progress.answers[q.id] !== undefined
+              ).length;
+              const allAnswered = answeredInCat === catQuestions.length;
+              const hasDealBreaker = catQuestions.some(
+                (q) => progress.answers[q.id]?.dealBreaker
+              );
+
+              return (
+                <motion.button
+                  key={catId}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: catIndex * 0.04, duration: 0.25 }}
+                  onClick={() => handleReviewCategoryClick(catIndex)}
+                  className="w-full flex items-center justify-between py-3 px-4 rounded-xl border border-sand-100 dark:border-sand-800 hover:border-primary-400 dark:hover:border-primary-600 hover:bg-sand-50 dark:hover:bg-sand-900/50 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center"
+                      style={{ backgroundColor: catDef.color + '20' }}
+                    >
+                      {allAnswered ? (
+                        <Check className="w-4 h-4" style={{ color: catDef.color }} />
+                      ) : (
+                        <span
+                          className="text-xs font-bold"
+                          style={{ color: catDef.color }}
+                        >
+                          {answeredInCat}/{catQuestions.length}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-sand-800 dark:text-sand-200">
+                        {name}
+                      </span>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span
+                          className={`text-[10px] font-medium ${
+                            allAnswered
+                              ? 'text-green-600 dark:text-green-400'
+                              : 'text-yellow-600 dark:text-yellow-400'
+                          }`}
+                        >
+                          {allAnswered ? t.common.allAnswered : t.common.incomplete}
+                        </span>
+                        {hasDealBreaker && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-accent-600 dark:text-accent-400">
+                            <ShieldAlert className="w-3 h-3" />
+                            {t.common.dealBreakerMarked}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <ArrowLeft className="w-4 h-4 text-sand-400 rotate-180" />
+                </motion.button>
+              );
+            })}
+          </div>
+        </Card>
+
+        <Button onClick={handleSubmitFromReview} size="lg" className="w-full">
+          <Send size={16} className="mr-2" />
+          {t.common.submitAndView}
+        </Button>
+      </div>
+    );
+  }
+
+  // Category intro phase (not shown in edit mode)
+  if (phase === 'category-intro' && showCategoryIntro && currentCatId && !isEditMode) {
     return (
       <CategoryIntro
         categoryId={currentCatId}
@@ -237,11 +384,25 @@ export default function QuizPage() {
   return (
     <QuizShell
       currentCategory={currentCatId}
-      overallProgress={overallProgress}
+      overallProgress={isEditMode ? categoryProgress : overallProgress}
       categoryProgress={categoryProgress}
       questionNumber={progress.currentQuestionIndex + 1}
       totalQuestions={currentQuestions.length}
     >
+      {/* Edit mode: Back to Results button */}
+      {isEditMode && (
+        <div className="mb-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={finishEditMode}
+          >
+            <ArrowLeft size={16} className="mr-1" />
+            {t.common.backToResults}
+          </Button>
+        </div>
+      )}
+
       <AnimatePresence mode="wait">
         <QuestionCard
           key={currentQuestion.id}
@@ -261,11 +422,21 @@ export default function QuizPage() {
         canPrev={progress.currentQuestionIndex > 0}
         canNext={true}
         isLastQuestion={
-          progress.currentQuestionIndex >= currentQuestions.length - 1 &&
-          progress.currentCategoryIndex >= selectedCategories.length - 1
+          isEditMode
+            ? progress.currentQuestionIndex >= currentQuestions.length - 1
+            : (progress.currentQuestionIndex >= currentQuestions.length - 1 &&
+               progress.currentCategoryIndex >= selectedCategories.length - 1)
         }
         hasAnswer={!!existingAnswer}
       />
     </QuizShell>
+  );
+}
+
+export default function QuizPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-20 text-sand-500">Loading...</div>}>
+      <QuizContent />
+    </Suspense>
   );
 }
