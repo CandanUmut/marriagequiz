@@ -75,55 +75,57 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-40 bg-white/80 dark:bg-sand-950/80 backdrop-blur-md border-b border-sand-100 dark:border-sand-800">
-      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center">
-            <Heart size={18} className="text-white fill-white" />
-          </div>
-          <span className="font-serif text-xl font-bold text-primary-800 dark:text-primary-300 group-hover:text-primary-600 transition-colors">
-            {t.common.appName}
-          </span>
-        </Link>
+    <>
+      <header className="sticky top-0 z-40 bg-white/80 dark:bg-sand-950/80 backdrop-blur-md border-b border-sand-100 dark:border-sand-800">
+        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center">
+              <Heart size={18} className="text-white fill-white" />
+            </div>
+            <span className="font-serif text-xl font-bold text-primary-800 dark:text-primary-300 group-hover:text-primary-600 transition-colors">
+              {t.common.appName}
+            </span>
+          </Link>
 
-        {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-6">
-          {navLinks.slice(1).map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`text-sm transition-colors ${
-                isActive(link.href)
-                  ? 'text-primary-600 dark:text-primary-400 font-medium'
-                  : 'text-sand-600 dark:text-sand-400 hover:text-primary-600 dark:hover:text-primary-400'
-              }`}
+          {/* Desktop nav */}
+          <nav className="hidden md:flex items-center gap-6">
+            {navLinks.slice(1).map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`text-sm transition-colors ${
+                  isActive(link.href)
+                    ? 'text-primary-600 dark:text-primary-400 font-medium'
+                    : 'text-sand-600 dark:text-sand-400 hover:text-primary-600 dark:hover:text-primary-400'
+                }`}
+              >
+                {link.labelKey ? t.common[link.labelKey] : ''}
+              </Link>
+            ))}
+          </nav>
+
+          {/* Controls - always visible */}
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <ThemeToggle />
+
+            {/* Mobile hamburger button */}
+            <button
+              ref={hamburgerRef}
+              type="button"
+              className="md:hidden p-2 rounded-lg text-sand-600 dark:text-sand-400 hover:bg-sand-100 dark:hover:bg-sand-800 transition-colors"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={mobileMenuOpen}
             >
-              {link.labelKey ? t.common[link.labelKey] : ''}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Desktop controls */}
-        <div className="hidden md:flex items-center gap-2">
-          <LanguageSwitcher />
-          <ThemeToggle />
+              <Menu size={24} />
+            </button>
+          </div>
         </div>
+      </header>
 
-        {/* Mobile hamburger button */}
-        <button
-          ref={hamburgerRef}
-          type="button"
-          className="md:hidden p-2 rounded-lg text-sand-600 dark:text-sand-400 hover:bg-sand-100 dark:hover:bg-sand-800 transition-colors"
-          onClick={() => setMobileMenuOpen(true)}
-          aria-label="Open menu"
-          aria-expanded={mobileMenuOpen}
-        >
-          <Menu size={24} />
-        </button>
-      </div>
-
-      {/* Mobile drawer */}
+      {/* Mobile drawer - rendered outside header to avoid backdrop-blur stacking context */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <>
@@ -189,7 +191,7 @@ export default function Header() {
                 ))}
               </nav>
 
-              {/* Controls at the bottom */}
+              {/* Controls at the bottom of drawer */}
               <div className="border-t border-sand-100 dark:border-sand-800 px-4 py-4 flex items-center gap-3">
                 <LanguageSwitcher />
                 <ThemeToggle />
@@ -198,6 +200,6 @@ export default function Header() {
           </>
         )}
       </AnimatePresence>
-    </header>
+    </>
   );
 }
