@@ -1,0 +1,193 @@
+{
+  "common": {
+    "appName": "Hayırlısı",
+    "tagline": "Know yourself before you seek another",
+    "startQuiz": "Begin Your Journey",
+    "viewResults": "View Results",
+    "compare": "Compare Profiles",
+    "about": "About",
+    "research": "Research",
+    "language": "Language",
+    "darkMode": "Dark Mode",
+    "lightMode": "Light Mode",
+    "next": "Next",
+    "previous": "Previous",
+    "skip": "Skip",
+    "save": "Save",
+    "export": "Export",
+    "share": "Share",
+    "close": "Close",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "learnMore": "Learn More",
+    "privacyNote": "Your data never leaves your device"
+  },
+  "landing": {
+    "heroTitle": "This is not a dating app.\nThis is a mirror.",
+    "heroSubtitle": "A research-backed tool to help you understand yourself before one of life's most important decisions.",
+    "ctaButton": "Start the Quiz",
+    "ctaSubtext": "Free. Private. No account needed.",
+    "statsTitle": "Built on Science",
+    "stat1Value": "43",
+    "stat1Label": "longitudinal datasets analyzed",
+    "stat2Value": "11,196",
+    "stat2Label": "couples studied",
+    "stat3Value": "12",
+    "stat3Label": "research-backed dimensions",
+    "stat4Value": "0",
+    "stat4Label": "data collected about you",
+    "howItWorksTitle": "How It Works",
+    "step1Title": "Reflect Honestly",
+    "step1Desc": "Answer questions across 12 research-backed dimensions of compatibility. No right answers — only honest ones.",
+    "step2Title": "Understand Yourself",
+    "step2Desc": "Get a detailed profile of your values, priorities, and blind spots. See where you're flexible and where you're firm.",
+    "step3Title": "Compare Thoughtfully",
+    "step3Desc": "Share your profile with a potential partner and see where you align, where you differ, and what needs conversation.",
+    "whyTitle": "Why This Exists",
+    "whyText": "Most compatibility tools tell you what you want to hear. We tell you what you need to hear — with warmth, research, and respect. This is an open-source, non-profit project. No ads, no data collection, no hidden agenda.",
+    "openSourceTitle": "Open Source & Non-Profit",
+    "openSourceText": "This project is completely free, open-source, and collects zero data. Every algorithm is transparent. Every insight is research-backed."
+  },
+  "quiz": {
+    "title": "Your Journey",
+    "intro": "This quiz helps you understand yourself across 12 dimensions that research shows matter most for marriage compatibility.",
+    "honestyPrompt": "Remember: this tool is only as useful as you are honest. Answer as you truly are, not as you wish to be.",
+    "selectCategories": "Select Dimensions",
+    "selectAll": "All Dimensions (Recommended)",
+    "selectCustom": "Choose Specific Dimensions",
+    "estimatedTime": "Estimated time",
+    "minutes": "minutes",
+    "questionOf": "Question {current} of {total}",
+    "categoryComplete": "Dimension Complete",
+    "whyThisQuestion": "Why this question?",
+    "dealBreakerQuestion": "Is this a deal-breaker for you?",
+    "dealBreakerExplain": "Would you walk away if your partner fundamentally disagreed on this?",
+    "honestyCheck": "Honesty Check",
+    "honestyCheckText": "Take a moment. Are you answering as your true self, or as who you wish you were? Both are natural — but only honesty makes this useful.",
+    "progressSaved": "Progress saved automatically",
+    "resumeQuiz": "Resume Quiz",
+    "startFresh": "Start Fresh",
+    "categoryIntro": "About this dimension"
+  },
+  "results": {
+    "title": "Your Profile",
+    "subtitle": "Here's what your answers reveal about your priorities, values, and approach to partnership.",
+    "overallProfile": "Overall Profile",
+    "dimensionBreakdown": "Dimension Breakdown",
+    "compromiseMap": "Your Compromise Map",
+    "compromiseMapDesc": "Where you're flexible and where you're firm",
+    "blindSpots": "Blind Spots",
+    "blindSpotsDesc": "Areas where your stated and revealed preferences may diverge",
+    "insights": "Key Insights",
+    "exportPDF": "Export as PDF",
+    "exportImage": "Export as Image",
+    "copyCode": "Copy Result Code",
+    "codeCopied": "Code copied!",
+    "compareWith": "Compare with Someone",
+    "selfScore": "Your Position",
+    "importanceScore": "How Much This Matters to You",
+    "flexibilityScore": "Your Flexibility",
+    "consistencyScore": "Answer Consistency",
+    "dealBreaker": "Deal-Breaker",
+    "notDealBreaker": "Negotiable",
+    "highConsistency": "Your answers were highly consistent",
+    "lowConsistency": "Some of your answers suggest you might be answering with your ideal self rather than your actual self. Consider retaking with radical honesty — the results will be more useful.",
+    "typeDescription": "Your Profile Type",
+    "rigid": "Firm",
+    "flexible": "Flexible",
+    "researchSays": "What Research Says"
+  },
+  "compare": {
+    "title": "Compare Profiles",
+    "subtitle": "See how two profiles align across all dimensions",
+    "enterCode": "Enter Partner's Result Code",
+    "pasteCode": "Paste the result code here",
+    "compareButton": "Compare",
+    "overallAlignment": "Overall Alignment",
+    "greenZone": "Strong Alignment",
+    "yellowZone": "Workable Differences",
+    "redZone": "Needs Conversation",
+    "asymmetryAlert": "Asymmetry Alert",
+    "compromiseRoadmap": "Compromise Roadmap",
+    "conversationStarters": "Conversation Starters",
+    "personA": "Person A",
+    "personB": "Person B",
+    "exportComparison": "Export Comparison"
+  },
+  "about": {
+    "title": "About Hayırlısı",
+    "missionTitle": "Our Mission",
+    "missionText": "To help people make one of life's most important decisions with clarity, honesty, and the best available research.",
+    "researchTitle": "The Research",
+    "researchText": "Every question, scoring weight, and insight in this tool is grounded in peer-reviewed research spanning decades of marriage and relationship science.",
+    "privacyTitle": "Your Privacy",
+    "privacyText": "We collect absolutely no data. No analytics, no tracking, no cookies beyond localStorage for saving your quiz progress. Everything runs in your browser. Your answers never leave your device.",
+    "openSourceTitle": "Open Source",
+    "openSourceText": "This entire project is open source. You can inspect every algorithm, question, and scoring mechanism. We believe transparency builds trust.",
+    "creditsTitle": "Credits",
+    "creditsText": "Built with care by volunteers who believe everyone deserves access to research-backed relationship tools."
+  },
+  "research": {
+    "title": "The Research Behind Hayırlısı",
+    "subtitle": "Every dimension, question, and insight is grounded in peer-reviewed research",
+    "keyFindings": "Key Findings",
+    "citations": "Citations & References",
+    "methodology": "Our Methodology"
+  },
+  "categories": {
+    "values": {
+      "name": "Core Values & Worldview",
+      "description": "Religious beliefs, moral framework, life philosophy, and social values"
+    },
+    "communication": {
+      "name": "Communication & Conflict",
+      "description": "Conflict resolution style, emotional expressiveness, listening patterns"
+    },
+    "financial": {
+      "name": "Financial Behavior",
+      "description": "Spending vs. saving, debt tolerance, financial transparency"
+    },
+    "family": {
+      "name": "Family & Children",
+      "description": "Desire for children, parenting philosophy, extended family boundaries"
+    },
+    "goals": {
+      "name": "Life Goals & Ambition",
+      "description": "Career ambition, geographic flexibility, lifestyle vision"
+    },
+    "intimacy": {
+      "name": "Intimacy & Affection",
+      "description": "Love language, affection expectations, emotional intimacy needs"
+    },
+    "household": {
+      "name": "Household & Daily Life",
+      "description": "Cleanliness standards, cooking expectations, division of labor"
+    },
+    "health": {
+      "name": "Health & Lifestyle",
+      "description": "Diet approach, exercise habits, mental health openness"
+    },
+    "social": {
+      "name": "Social Life & Boundaries",
+      "description": "Introversion/extroversion, socializing style, friendship boundaries"
+    },
+    "growth": {
+      "name": "Personal Growth",
+      "description": "Willingness to change, therapy openness, feedback receptiveness"
+    },
+    "worklife": {
+      "name": "Work-Life Balance",
+      "description": "Work hours tolerance, career vs. family priority, stress management"
+    },
+    "aesthetic": {
+      "name": "Aesthetic & Lifestyle Preferences",
+      "description": "Appearance standards, home style, travel and leisure preferences"
+    }
+  },
+  "weights": {
+    "CRITICAL": "Critical",
+    "HIGH": "High",
+    "MEDIUM": "Medium",
+    "LOW": "Low"
+  }
+}

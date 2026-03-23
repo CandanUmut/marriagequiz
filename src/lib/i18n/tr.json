@@ -1,0 +1,193 @@
+{
+  "common": {
+    "appName": "Hayırlısı",
+    "tagline": "Birini aramadan önce kendini tanı",
+    "startQuiz": "Yolculuğuna Başla",
+    "viewResults": "Sonuçları Gör",
+    "compare": "Profilleri Karşılaştır",
+    "about": "Hakkında",
+    "research": "Araştırma",
+    "language": "Dil",
+    "darkMode": "Koyu Mod",
+    "lightMode": "Açık Mod",
+    "next": "İleri",
+    "previous": "Geri",
+    "skip": "Atla",
+    "save": "Kaydet",
+    "export": "Dışa Aktar",
+    "share": "Paylaş",
+    "close": "Kapat",
+    "loading": "Yükleniyor...",
+    "error": "Bir şeyler ters gitti",
+    "learnMore": "Daha Fazla Bilgi",
+    "privacyNote": "Verileriniz asla cihazınızdan çıkmaz"
+  },
+  "landing": {
+    "heroTitle": "Bu bir tanışma uygulaması değil.\nBu bir ayna.",
+    "heroSubtitle": "Hayatın en önemli kararlarından birini vermeden önce kendini anlamana yardımcı olan, araştırmaya dayalı bir araç.",
+    "ctaButton": "Teste Başla",
+    "ctaSubtext": "Ücretsiz. Gizli. Hesap gerekmez.",
+    "statsTitle": "Bilime Dayalı",
+    "stat1Value": "43",
+    "stat1Label": "uzunlamasına veri seti analiz edildi",
+    "stat2Value": "11.196",
+    "stat2Label": "çift incelendi",
+    "stat3Value": "12",
+    "stat3Label": "araştırmaya dayalı boyut",
+    "stat4Value": "0",
+    "stat4Label": "sizden toplanan veri",
+    "howItWorksTitle": "Nasıl Çalışır",
+    "step1Title": "Dürüstçe Düşün",
+    "step1Desc": "Uyumun en önemli 12 boyutunda soruları yanıtla. Doğru cevap yok — sadece dürüst olanlar var.",
+    "step2Title": "Kendini Anla",
+    "step2Desc": "Değerlerinin, önceliklerinin ve kör noktalarının detaylı bir profilini al. Nerelerde esnek, nerelerde kararlı olduğunu gör.",
+    "step3Title": "Düşünerek Karşılaştır",
+    "step3Desc": "Profilini adayınla paylaş ve nerede örtüştüğünüzü, nerede ayrıştığınızı ve neleri konuşmanız gerektiğini gör.",
+    "whyTitle": "Neden Var",
+    "whyText": "Çoğu uyumluluk aracı duymak istediğini söyler. Biz duyman gerekeni söyleriz — sıcaklıkla, araştırmayla ve saygıyla. Bu açık kaynaklı, kâr amacı gütmeyen bir projedir. Reklam yok, veri toplama yok, gizli gündem yok.",
+    "openSourceTitle": "Açık Kaynak ve Kâr Amacı Gütmeyen",
+    "openSourceText": "Bu proje tamamen ücretsiz, açık kaynaklı ve hiçbir veri toplamaz. Her algoritma şeffaftır. Her içgörü araştırmaya dayanır."
+  },
+  "quiz": {
+    "title": "Yolculuğun",
+    "intro": "Bu test, araştırmaların evlilik uyumu için en önemli gösterdiği 12 boyutta kendini anlamanı sağlar.",
+    "honestyPrompt": "Unutma: bu araç ancak sen dürüst olduğun kadar faydalıdır. Olmak istediğin gibi değil, olduğun gibi cevapla.",
+    "selectCategories": "Boyutları Seç",
+    "selectAll": "Tüm Boyutlar (Önerilen)",
+    "selectCustom": "Belirli Boyutları Seç",
+    "estimatedTime": "Tahmini süre",
+    "minutes": "dakika",
+    "questionOf": "Soru {current} / {total}",
+    "categoryComplete": "Boyut Tamamlandı",
+    "whyThisQuestion": "Bu soru neden soruluyor?",
+    "dealBreakerQuestion": "Bu senin için vazgeçilmez mi?",
+    "dealBreakerExplain": "Eşin bu konuda temelden farklı düşünseydi ilişkiden vazgeçer miydin?",
+    "honestyCheck": "Dürüstlük Kontrolü",
+    "honestyCheckText": "Bir an dur. Gerçek benliğinle mi cevaplıyorsun, yoksa olmak istediğin kişiyle mi? İkisi de doğal — ama sadece dürüstlük bunu faydalı kılar.",
+    "progressSaved": "İlerleme otomatik kaydedildi",
+    "resumeQuiz": "Teste Devam Et",
+    "startFresh": "Baştan Başla",
+    "categoryIntro": "Bu boyut hakkında"
+  },
+  "results": {
+    "title": "Profilin",
+    "subtitle": "Cevaplarının önceliklerin, değerlerin ve birlikteliğe yaklaşımın hakkında ortaya koyduklarını burada bulabilirsin.",
+    "overallProfile": "Genel Profil",
+    "dimensionBreakdown": "Boyut Detayları",
+    "compromiseMap": "Uzlaşma Haritası",
+    "compromiseMapDesc": "Nerelerde esnek, nerelerde kararlısın",
+    "blindSpots": "Kör Noktalar",
+    "blindSpotsDesc": "Belirttiğin tercihlerle ortaya çıkan tercihlerinin farklılaşabileceği alanlar",
+    "insights": "Temel İçgörüler",
+    "exportPDF": "PDF Olarak İndir",
+    "exportImage": "Görsel Olarak İndir",
+    "copyCode": "Sonuç Kodunu Kopyala",
+    "codeCopied": "Kod kopyalandı!",
+    "compareWith": "Biriyle Karşılaştır",
+    "selfScore": "Konumun",
+    "importanceScore": "Bunun Senin İçin Önemi",
+    "flexibilityScore": "Esnekliğin",
+    "consistencyScore": "Cevap Tutarlılığı",
+    "dealBreaker": "Vazgeçilmez",
+    "notDealBreaker": "Uzlaşılabilir",
+    "highConsistency": "Cevapların oldukça tutarlıydı",
+    "lowConsistency": "Bazı cevapların ideal benliğinle cevap veriyor olabileceğini gösteriyor. Radikal dürüstlükle tekrar çözmeyi düşün — sonuçlar çok daha faydalı olacaktır.",
+    "typeDescription": "Profil Tipin",
+    "rigid": "Kararlı",
+    "flexible": "Esnek",
+    "researchSays": "Araştırmalar Ne Diyor"
+  },
+  "compare": {
+    "title": "Profilleri Karşılaştır",
+    "subtitle": "İki profilin tüm boyutlarda nasıl örtüştüğünü gör",
+    "enterCode": "Partnerin Sonuç Kodunu Gir",
+    "pasteCode": "Sonuç kodunu buraya yapıştır",
+    "compareButton": "Karşılaştır",
+    "overallAlignment": "Genel Uyum",
+    "greenZone": "Güçlü Uyum",
+    "yellowZone": "Üzerinde Çalışılabilir Farklılıklar",
+    "redZone": "Konuşulması Gereken",
+    "asymmetryAlert": "Asimetri Uyarısı",
+    "compromiseRoadmap": "Uzlaşma Yol Haritası",
+    "conversationStarters": "Konuşma Başlatıcılar",
+    "personA": "Kişi A",
+    "personB": "Kişi B",
+    "exportComparison": "Karşılaştırmayı Dışa Aktar"
+  },
+  "about": {
+    "title": "Hayırlısı Hakkında",
+    "missionTitle": "Misyonumuz",
+    "missionText": "İnsanların hayatlarının en önemli kararlarından birini netlik, dürüstlük ve mevcut en iyi araştırmalarla vermelerine yardımcı olmak.",
+    "researchTitle": "Araştırma",
+    "researchText": "Bu araçtaki her soru, puanlama ağırlığı ve içgörü, onlarca yıllık evlilik ve ilişki bilimini kapsayan hakemli araştırmalara dayanır.",
+    "privacyTitle": "Gizliliğiniz",
+    "privacyText": "Kesinlikle hiçbir veri toplamıyoruz. Test ilerlemenizi kaydetmek için kullanılan localStorage dışında analitik, izleme veya çerez yok. Her şey tarayıcınızda çalışır. Cevaplarınız asla cihazınızdan çıkmaz.",
+    "openSourceTitle": "Açık Kaynak",
+    "openSourceText": "Bu projenin tamamı açık kaynaktır. Her algoritmayı, soruyu ve puanlama mekanizmasını inceleyebilirsiniz. Şeffaflığın güven inşa ettiğine inanıyoruz.",
+    "creditsTitle": "Katkıda Bulunanlar",
+    "creditsText": "Herkesin araştırmaya dayalı ilişki araçlarına erişimi hak ettiğine inanan gönüllüler tarafından özenle geliştirilmiştir."
+  },
+  "research": {
+    "title": "Hayırlısı'nın Arkasındaki Araştırma",
+    "subtitle": "Her boyut, soru ve içgörü hakemli araştırmalara dayanır",
+    "keyFindings": "Temel Bulgular",
+    "citations": "Alıntılar ve Kaynakça",
+    "methodology": "Metodolojimiz"
+  },
+  "categories": {
+    "values": {
+      "name": "Temel Değerler ve Dünya Görüşü",
+      "description": "Dini inançlar, ahlaki çerçeve, hayat felsefesi ve toplumsal değerler"
+    },
+    "communication": {
+      "name": "İletişim ve Çatışma",
+      "description": "Çatışma çözme tarzı, duygusal ifade biçimi, dinleme kalıpları"
+    },
+    "financial": {
+      "name": "Finansal Davranış",
+      "description": "Harcama ve biriktirme alışkanlıkları, borç toleransı, finansal şeffaflık"
+    },
+    "family": {
+      "name": "Aile ve Çocuk",
+      "description": "Çocuk sahibi olma isteği, ebeveynlik felsefesi, geniş aile sınırları"
+    },
+    "goals": {
+      "name": "Hayat Hedefleri ve Hırs",
+      "description": "Kariyer hırsı, coğrafi esneklik, yaşam tarzı vizyonu"
+    },
+    "intimacy": {
+      "name": "Yakınlık ve Sevgi",
+      "description": "Sevgi dili, sevgi beklentileri, duygusal yakınlık ihtiyaçları"
+    },
+    "household": {
+      "name": "Ev Hayatı ve Gündelik Yaşam",
+      "description": "Temizlik standartları, yemek beklentileri, ev işi paylaşımı"
+    },
+    "health": {
+      "name": "Sağlık ve Yaşam Tarzı",
+      "description": "Beslenme yaklaşımı, egzersiz alışkanlıkları, ruh sağlığına açıklık"
+    },
+    "social": {
+      "name": "Sosyal Hayat ve Sınırlar",
+      "description": "İçe dönüklük/dışa dönüklük, sosyalleşme tarzı, arkadaşlık sınırları"
+    },
+    "growth": {
+      "name": "Kişisel Gelişim",
+      "description": "Değişime açıklık, terapiye yaklaşım, geri bildirim kabulü"
+    },
+    "worklife": {
+      "name": "İş-Yaşam Dengesi",
+      "description": "Çalışma saatleri toleransı, kariyer ve aile önceliği, stres yönetimi"
+    },
+    "aesthetic": {
+      "name": "Estetik ve Yaşam Tarzı Tercihleri",
+      "description": "Görünüm standartları, ev tarzı, seyahat ve boş zaman tercihleri"
+    }
+  },
+  "weights": {
+    "CRITICAL": "Kritik",
+    "HIGH": "Yüksek",
+    "MEDIUM": "Orta",
+    "LOW": "Düşük"
+  }
+}
