@@ -1,0 +1,271 @@
+'use client';
+
+import { useState, useMemo, useCallback } from 'react';
+import { AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { useQuizStore } from '@/lib/store/quizStore';
+import { useResultStore } from '@/lib/store/resultStore';
+import { useLocale, useTranslations } from '@/lib/i18n/config';
+import { questionsByCategory } from '@/lib/quiz/questions';
+import { categoryDefinitions, categoryOrder } from '@/lib/quiz/categories';
+import { calculateFullProfile } from '@/lib/quiz/scoring';
+import { shouldShowHonestyNudge } from '@/lib/quiz/honesty';
+import QuizShell from '@/components/quiz/QuizShell';
+import QuestionCard from '@/components/quiz/QuestionCard';
+import CategoryIntro from '@/components/quiz/CategoryIntro';
+import QuizNavigation from '@/components/quiz/QuizNavigation';
+import HonestyPrompt from '@/components/quiz/HonestyPrompt';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import { Play, RotateCcw } from 'lucide-react';
+
+type Phase = 'setup' | 'category-intro' | 'question' | 'honesty-nudge';
+
+export default function QuizPage() {
+  const router = useRouter();
+  const { locale } = useLocale();
+  const t = useTranslations();
+
+  const {
+    progress,
+    isStarted,
+    startQuiz,
+    setAnswer,
+    nextQuestion,
+    prevQuestion,
+    nextCategory,
+    completeQuiz,
+    resetQuiz,
+    getAnswer,
+    hasExistingProgress,
+  } = useQuizStore();
+
+  const { saveResult } = useResultStore();
+
+  const [phase, setPhase] = useState<Phase>(isStarted ? 'question' : 'setup');
+  const [showCategoryIntro, setShowCategoryIntro] = useState(true);
+
+  const selectedCategories = progress.selectedCategories;
+  const currentCatId = selectedCategories[progress.currentCategoryIndex];
+  const currentQuestions = useMemo(
+    () => questionsByCategory[currentCatId] || [],
+    [currentCatId]
+  );
+  const currentQuestion = currentQuestions[progress.currentQuestionIndex];
+
+  const totalQuestions = useMemo(
+    () => selectedCategories.reduce((sum, catId) => sum + (questionsByCategory[catId]?.length || 0), 0),
+    [selectedCategories]
+  );
+
+  const answeredCount = Object.keys(progress.answers).length;
+
+  const overallProgress = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
+  const categoryProgress = currentQuestions.length > 0
+    ? (progress.currentQuestionIndex / currentQuestions.length) * 100
+    : 0;
+
+  const handleStart = useCallback((fresh: boolean) => {
+    if (fresh) resetQuiz();
+    startQuiz();
+    setPhase('category-intro');
+    setShowCategoryIntro(true);
+  }, [resetQuiz, startQuiz]);
+
+  const handleCategoryIntroStart = useCallback(() => {
+    setPhase('question');
+    setShowCategoryIntro(false);
+  }, []);
+
+  const handleAnswer = useCallback((value: number | number[], dealBreaker?: boolean) => {
+    if (!currentQuestion) return;
+    setAnswer(currentQuestion.id, value, dealBreaker);
+  }, [currentQuestion, setAnswer]);
+
+  const handleNext = useCallback(() => {
+    const isLastQuestionInCategory = progress.currentQuestionIndex >= currentQuestions.length - 1;
+    const isLastCategory = progress.currentCategoryIndex >= selectedCategories.length - 1;
+
+    // Check honesty nudge
+    const newAnsweredCount = answeredCount + 1;
+    if (shouldShowHonestyNudge(newAnsweredCount)) {
+      setPhase('honesty-nudge');
+      return;
+    }
+
+    if (isLastQuestionInCategory && isLastCategory) {
+      // Quiz complete
+      completeQuiz();
+      const profile = calculateFullProfile(progress.answers, selectedCategories);
+      saveResult(profile);
+      router.push('/results');
+      return;
+    }
+
+    if (isLastQuestionInCategory) {
+      nextCategory(selectedCategories.length);
+      setPhase('category-intro');
+      setShowCategoryIntro(true);
+    } else {
+      nextQuestion(currentQuestions.length);
+    }
+  }, [
+    progress, currentQuestions, selectedCategories, answeredCount,
+    completeQuiz, nextCategory, nextQuestion, saveResult, router,
+  ]);
+
+  const handlePrev = useCallback(() => {
+    if (progress.currentQuestionIndex > 0) {
+      prevQuestion();
+    }
+  }, [progress.currentQuestionIndex, prevQuestion]);
+
+  const handleHonestyContinue = useCallback(() => {
+    setPhase('question');
+    // Continue with the navigation that was interrupted
+    const isLastQuestionInCategory = progress.currentQuestionIndex >= currentQuestions.length - 1;
+    const isLastCategory = progress.currentCategoryIndex >= selectedCategories.length - 1;
+
+    if (isLastQuestionInCategory && isLastCategory) {
+      completeQuiz();
+      const profile = calculateFullProfile(progress.answers, selectedCategories);
+      saveResult(profile);
+      router.push('/results');
+    } else if (isLastQuestionInCategory) {
+      nextCategory(selectedCategories.length);
+      setPhase('category-intro');
+      setShowCategoryIntro(true);
+    } else {
+      nextQuestion(currentQuestions.length);
+    }
+  }, [progress, currentQuestions, selectedCategories, completeQuiz, nextCategory, nextQuestion, saveResult, router]);
+
+  // Setup phase
+  if (phase === 'setup' || !isStarted) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-16">
+        <div className="text-center mb-12">
+          <h1 className="text-3xl md:text-4xl font-serif font-bold text-sand-900 dark:text-sand-100 mb-4">
+            {t.quiz.title}
+          </h1>
+          <p className="text-base text-sand-600 dark:text-sand-400 leading-relaxed max-w-lg mx-auto">
+            {t.quiz.intro}
+          </p>
+        </div>
+
+        {hasExistingProgress() && (
+          <Card variant="outlined" padding="lg" className="mb-6">
+            <p className="text-sm text-sand-700 dark:text-sand-300 mb-4">
+              {t.quiz.progressSaved}
+            </p>
+            <div className="flex gap-3">
+              <Button onClick={() => { setPhase('question'); useQuizStore.setState({ isStarted: true }); }}>
+                <Play size={16} className="mr-2" />
+                {t.quiz.resumeQuiz}
+              </Button>
+              <Button variant="outline" onClick={() => handleStart(true)}>
+                <RotateCcw size={16} className="mr-2" />
+                {t.quiz.startFresh}
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        <Card variant="elevated" padding="lg">
+          <h3 className="font-serif font-bold text-sand-900 dark:text-sand-100 mb-4">
+            {t.quiz.selectCategories}
+          </h3>
+          <p className="text-sm text-sand-500 mb-6">
+            {t.quiz.estimatedTime}: ~{Math.ceil(totalQuestions * 0.5)} {t.quiz.minutes}
+          </p>
+
+          <div className="space-y-3 mb-8">
+            {categoryOrder.map((catId) => {
+              const catDef = categoryDefinitions[catId];
+              const name = locale === 'en' ? catDef.nameEn : catDef.nameTr;
+              const qCount = questionsByCategory[catId]?.length || 0;
+              return (
+                <div key={catId} className="flex items-center justify-between py-2 px-3 rounded-lg bg-sand-50 dark:bg-sand-900">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: catDef.color }} />
+                    <span className="text-sm font-medium text-sand-800 dark:text-sand-200">{name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-sand-200 dark:bg-sand-700 text-sand-600 dark:text-sand-400">
+                      {catDef.weight}
+                    </span>
+                    <span className="text-xs text-sand-500">{qCount}q</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <Button onClick={() => handleStart(true)} size="lg" className="w-full">
+            {t.landing.ctaButton}
+          </Button>
+
+          <p className="text-xs text-sand-400 mt-4 text-center italic">
+            {t.quiz.honestyPrompt}
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
+  // Category intro phase
+  if (phase === 'category-intro' && showCategoryIntro && currentCatId) {
+    return (
+      <CategoryIntro
+        categoryId={currentCatId}
+        questionCount={currentQuestions.length}
+        onStart={handleCategoryIntroStart}
+      />
+    );
+  }
+
+  // Honesty nudge phase
+  if (phase === 'honesty-nudge') {
+    return <HonestyPrompt onContinue={handleHonestyContinue} />;
+  }
+
+  // Question phase
+  if (!currentQuestion) return null;
+
+  const existingAnswer = getAnswer(currentQuestion.id);
+
+  return (
+    <QuizShell
+      currentCategory={currentCatId}
+      overallProgress={overallProgress}
+      categoryProgress={categoryProgress}
+      questionNumber={progress.currentQuestionIndex + 1}
+      totalQuestions={currentQuestions.length}
+    >
+      <AnimatePresence mode="wait">
+        <QuestionCard
+          key={currentQuestion.id}
+          question={currentQuestion}
+          value={existingAnswer?.value}
+          dealBreaker={existingAnswer?.dealBreaker}
+          onAnswer={handleAnswer}
+          questionNumber={progress.currentQuestionIndex + 1}
+          totalQuestions={currentQuestions.length}
+        />
+      </AnimatePresence>
+
+      <QuizNavigation
+        onPrev={handlePrev}
+        onNext={handleNext}
+        onSkip={handleNext}
+        canPrev={progress.currentQuestionIndex > 0}
+        canNext={true}
+        isLastQuestion={
+          progress.currentQuestionIndex >= currentQuestions.length - 1 &&
+          progress.currentCategoryIndex >= selectedCategories.length - 1
+        }
+        hasAnswer={!!existingAnswer}
+      />
+    </QuizShell>
+  );
+}
