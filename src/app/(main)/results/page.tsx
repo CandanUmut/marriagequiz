@@ -20,9 +20,9 @@ function ResultsContent() {
   useEffect(() => {
     const data = searchParams.get('data');
     if (data) {
-      const decoded = decodeProfile(data);
-      if (decoded) {
-        setProfile(decoded);
+      const result = decodeProfile(data);
+      if (result) {
+        setProfile(result.profile);
         return;
       }
     }

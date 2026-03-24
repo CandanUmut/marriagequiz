@@ -10,9 +10,10 @@ import { decodeProfile } from '@/lib/export/share';
 import { useResultStore } from '@/lib/store/resultStore';
 import { categoryDefinitions } from '@/lib/quiz/categories';
 import type { ProfileResult } from '@/lib/types/results';
+import type { QuizAnswer } from '@/lib/types/quiz';
 
 interface CompareInputProps {
-  onCompare: (profileB: ProfileResult) => void;
+  onCompare: (profileB: ProfileResult, answersB: Record<string, QuizAnswer>) => void;
 }
 
 export default function CompareInput({ onCompare }: CompareInputProps) {
@@ -40,10 +41,10 @@ export default function CompareInput({ onCompare }: CompareInputProps) {
 
     // Small delay for UX feedback
     setTimeout(() => {
-      const decoded = decodeProfile(trimmed);
+      const result = decodeProfile(trimmed);
       setIsDecoding(false);
 
-      if (!decoded) {
+      if (!result) {
         setError(
           locale === 'en'
             ? 'Invalid share code. Please check and try again.'
@@ -52,7 +53,7 @@ export default function CompareInput({ onCompare }: CompareInputProps) {
         return;
       }
 
-      if (decoded.dimensions.length === 0) {
+      if (result.profile.dimensions.length === 0) {
         setError(
           locale === 'en'
             ? 'This code does not contain valid profile data.'
@@ -61,7 +62,7 @@ export default function CompareInput({ onCompare }: CompareInputProps) {
         return;
       }
 
-      onCompare(decoded);
+      onCompare(result.profile, result.answers);
     }, 300);
   };
 

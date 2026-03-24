@@ -25,6 +25,7 @@ import { detectBlindSpots } from '@/lib/quiz/scoring';
 import { encodeProfile } from '@/lib/export/share';
 import { generatePDF } from '@/lib/export/pdf';
 import { generateShareImage } from '@/lib/export/image';
+import { useQuizStore } from '@/lib/store/quizStore';
 import Link from 'next/link';
 import DimensionCard from './DimensionCard';
 import InsightCard from './InsightCard';
@@ -116,6 +117,7 @@ const sectionVariants = {
 
 export default function ResultsDashboard({ profile }: ResultsDashboardProps) {
   const { locale } = useLocale();
+  const quizAnswers = useQuizStore((s) => s.progress.answers);
   const [codeCopied, setCodeCopied] = useState(false);
   const [exportingPDF, setExportingPDF] = useState(false);
   const [exportingImage, setExportingImage] = useState(false);
@@ -146,11 +148,11 @@ export default function ResultsDashboard({ profile }: ResultsDashboardProps) {
 
   // Export handlers
   const handleCopyCode = useCallback(async () => {
-    const code = encodeProfile(profile);
+    const code = encodeProfile(profile, quizAnswers);
     await navigator.clipboard.writeText(code);
     setCodeCopied(true);
     setTimeout(() => setCodeCopied(false), 2500);
-  }, [profile]);
+  }, [profile, quizAnswers]);
 
   const handleExportPDF = useCallback(async () => {
     setExportingPDF(true);
