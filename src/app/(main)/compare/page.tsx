@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import { useTranslations } from '@/lib/i18n/config';
 import { useResultStore } from '@/lib/store/resultStore';
+import { useQuizStore } from '@/lib/store/quizStore';
 import { useCompareStore } from '@/lib/store/compareStore';
 import { calculateCompatibility } from '@/lib/compare/matching';
 import { ProfileResult } from '@/lib/types/results';
+import { QuizAnswer } from '@/lib/types/quiz';
 import { ComparisonResult } from '@/lib/types/compare';
 import CompareInput from '@/components/compare/CompareInput';
 import ComparisonDashboard from '@/components/compare/ComparisonDashboard';
@@ -16,14 +18,15 @@ import { ArrowRight } from 'lucide-react';
 export default function ComparePage() {
   const t = useTranslations();
   const { currentResult } = useResultStore();
+  const quizAnswers = useQuizStore((s) => s.progress.answers);
   const { setProfileA, setProfileB, setComparisonResult } = useCompareStore();
   const [comparison, setComparison] = useState<ComparisonResult | null>(null);
 
-  const handleCompare = (profileB: ProfileResult) => {
+  const handleCompare = (profileB: ProfileResult, answersB: Record<string, QuizAnswer>) => {
     if (!currentResult) return;
     setProfileA(currentResult);
     setProfileB(profileB);
-    const result = calculateCompatibility(currentResult, profileB);
+    const result = calculateCompatibility(currentResult, profileB, quizAnswers, answersB);
     setComparisonResult(result);
     setComparison(result);
   };

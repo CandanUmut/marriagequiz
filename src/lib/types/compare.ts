@@ -1,6 +1,20 @@
 import type { CategoryId } from './quiz';
 import type { ProfileResult } from './results';
 
+export type CollisionSeverity = 'critical' | 'serious';
+
+export interface DealBreakerCollision {
+  category: CategoryId;
+  questionKey: string;
+  personAPosition: number;
+  personBPosition: number;
+  personAIsDealBreaker: boolean;
+  personBIsDealBreaker: boolean;
+  severity: CollisionSeverity;
+  descriptionEn: string;
+  descriptionTr: string;
+}
+
 export interface DimensionAlignment {
   categoryId: CategoryId;
   alignmentScore: number;
@@ -9,6 +23,19 @@ export interface DimensionAlignment {
   personBScore: number;
   personADealBreaker: boolean;
   personBDealBreaker: boolean;
+  hasDealBreakerCollision: boolean;
+  summaryEn: string;
+  summaryTr: string;
+  researchNoteEn: string;
+  researchNoteTr: string;
+}
+
+export interface ScoreFraming {
+  band: 'strong' | 'good' | 'significant' | 'fundamental' | 'critical';
+  labelEn: string;
+  labelTr: string;
+  descriptionEn: string;
+  descriptionTr: string;
 }
 
 export interface AsymmetryAlert {
@@ -31,6 +58,9 @@ export interface ComparisonResult {
   profileA: ProfileResult;
   profileB: ProfileResult;
   overallAlignment: number;
+  scoreCeiling: number;
+  dealBreakerCollisions: DealBreakerCollision[];
+  framing: ScoreFraming;
   dimensionAlignments: DimensionAlignment[];
   asymmetryAlerts: AsymmetryAlert[];
   compromiseRoadmap: CompromiseItem[];

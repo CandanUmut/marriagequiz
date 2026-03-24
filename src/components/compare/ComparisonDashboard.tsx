@@ -1,40 +1,39 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { TrendingUp, AlertTriangle, Handshake, Layers } from 'lucide-react';
+import { TrendingUp, AlertTriangle, Handshake, Layers, ShieldAlert } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import RadarChart from '@/components/ui/RadarChart';
 import { useLocale } from '@/lib/i18n/config';
 import { categoryDefinitions } from '@/lib/quiz/categories';
 import AlignmentBar from '@/components/compare/AlignmentBar';
-import type { ComparisonResult, AsymmetryAlert, CompromiseItem } from '@/lib/types/compare';
+import type { ComparisonResult, AsymmetryAlert, CompromiseItem, DealBreakerCollision } from '@/lib/types/compare';
 
 interface ComparisonDashboardProps {
   comparison: ComparisonResult;
 }
 
 function scoreColor(score: number): string {
+  if (score >= 85) return 'text-emerald-600 dark:text-emerald-400';
   if (score >= 70) return 'text-emerald-600 dark:text-emerald-400';
   if (score >= 50) return 'text-amber-600 dark:text-amber-400';
+  if (score >= 30) return 'text-orange-600 dark:text-orange-400';
   return 'text-red-600 dark:text-red-400';
 }
 
 function scoreRingColor(score: number): string {
+  if (score >= 85) return 'border-emerald-400 dark:border-emerald-500';
   if (score >= 70) return 'border-emerald-400 dark:border-emerald-500';
   if (score >= 50) return 'border-amber-400 dark:border-amber-500';
+  if (score >= 30) return 'border-orange-400 dark:border-orange-500';
   return 'border-red-400 dark:border-red-500';
 }
 
 function scoreBg(score: number): string {
   if (score >= 70) return 'bg-emerald-50 dark:bg-emerald-950/30';
   if (score >= 50) return 'bg-amber-50 dark:bg-amber-950/30';
+  if (score >= 30) return 'bg-orange-50 dark:bg-orange-950/30';
   return 'bg-red-50 dark:bg-red-950/30';
-}
-
-function scoreLabel(score: number, locale: 'en' | 'tr'): string {
-  if (score >= 70) return locale === 'en' ? 'Strong Alignment' : 'Güçlü Uyum';
-  if (score >= 50) return locale === 'en' ? 'Moderate — Talk It Out' : 'Orta — Konuşun';
-  return locale === 'en' ? 'Needs Attention' : 'Dikkat Gerekli';
 }
 
 const difficultyBadge: Record<CompromiseItem['difficulty'], { bg: string; text: string; en: string; tr: string }> = {
@@ -55,7 +54,15 @@ const fadeUp = {
 
 export default function ComparisonDashboard({ comparison }: ComparisonDashboardProps) {
   const { locale } = useLocale();
-  const { overallAlignment, dimensionAlignments, asymmetryAlerts, compromiseRoadmap } = comparison;
+  const {
+    overallAlignment,
+    scoreCeiling,
+    dealBreakerCollisions,
+    framing,
+    dimensionAlignments,
+    asymmetryAlerts,
+    compromiseRoadmap,
+  } = comparison;
 
   // Build radar chart data
   const radarPrimary = dimensionAlignments.map((da) => {
@@ -83,6 +90,13 @@ export default function ComparisonDashboard({ comparison }: ComparisonDashboardP
       animate="show"
       className="w-full max-w-4xl mx-auto space-y-8"
     >
+      {/* ─── Deal-Breaker Collision Banner (BEFORE overall score) ─── */}
+      {dealBreakerCollisions.length > 0 && (
+        <motion.div variants={fadeUp}>
+          <DealBreakerBanner collisions={dealBreakerCollisions} locale={locale} />
+        </motion.div>
+      )}
+
       {/* ─── Overall Score ─── */}
       <motion.div variants={fadeUp}>
         <Card variant="elevated" padding="lg" className="text-center">
@@ -104,14 +118,20 @@ export default function ComparisonDashboard({ comparison }: ComparisonDashboardP
           </div>
 
           <p className={`text-base font-medium ${scoreColor(overallAlignment)}`}>
-            {scoreLabel(overallAlignment, locale)}
+            {locale === 'en' ? framing.labelEn : framing.labelTr}
           </p>
 
-          <p className="text-xs text-sand-400 dark:text-sand-500 mt-1">
-            {locale === 'en'
-              ? 'Based on weighted dimension comparison'
-              : 'Ağırlıklı boyut karşılaştırmasına dayalı'}
+          <p className="text-sm text-sand-600 dark:text-sand-400 mt-3 max-w-xl mx-auto leading-relaxed">
+            {locale === 'en' ? framing.descriptionEn : framing.descriptionTr}
           </p>
+
+          {scoreCeiling < 100 && (
+            <p className="text-xs text-red-500 dark:text-red-400 mt-2 italic">
+              {locale === 'en'
+                ? `Score capped at ${scoreCeiling}% due to deal-breaker conflicts.`
+                : `Puan, vazgeçilmez çatışmalar nedeniyle %${scoreCeiling} ile sınırlandırıldı.`}
+            </p>
+          )}
         </Card>
       </motion.div>
 
@@ -185,7 +205,7 @@ export default function ComparisonDashboard({ comparison }: ComparisonDashboardP
 
           <div className="space-y-3">
             {asymmetryAlerts.map((alert) => (
-              <AsymmetryAlertCard key={alert.categoryId} alert={alert} locale={locale} />
+              <AsymmetryAlertCard key={`${alert.categoryId}-asym`} alert={alert} locale={locale} />
             ))}
           </div>
         </motion.div>
@@ -214,6 +234,61 @@ export default function ComparisonDashboard({ comparison }: ComparisonDashboardP
         </motion.div>
       )}
     </motion.div>
+  );
+}
+
+/* ─── Deal-Breaker Banner ─── */
+
+function DealBreakerBanner({ collisions, locale }: { collisions: DealBreakerCollision[]; locale: 'en' | 'tr' }) {
+  const criticalCount = collisions.filter((c) => c.severity === 'critical').length;
+  const seriousCount = collisions.filter((c) => c.severity === 'serious').length;
+
+  return (
+    <Card variant="outlined" padding="md" className="border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/30">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <ShieldAlert size={20} className="text-red-600 dark:text-red-400" />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-base font-bold text-red-700 dark:text-red-300 mb-2">
+            {locale === 'en'
+              ? 'DEAL-BREAKER CONFLICTS DETECTED'
+              : 'VAZGEÇİLMEZ ÇATIŞMALAR TESPİT EDİLDİ'}
+          </h3>
+
+          <p className="text-sm text-red-600 dark:text-red-400 mb-3">
+            {locale === 'en'
+              ? `${collisions.length} fundamental conflict${collisions.length > 1 ? 's' : ''} found between your profiles${criticalCount > 0 ? ` (${criticalCount} critical` : ''}${criticalCount > 0 && seriousCount > 0 ? `, ${seriousCount} serious)` : criticalCount > 0 ? ')' : seriousCount > 0 ? ` (${seriousCount} serious)` : ''}:`
+              : `Profilleriniz arasında ${collisions.length} temel çatışma bulundu${criticalCount > 0 ? ` (${criticalCount} kritik` : ''}${criticalCount > 0 && seriousCount > 0 ? `, ${seriousCount} ciddi)` : criticalCount > 0 ? ')' : seriousCount > 0 ? ` (${seriousCount} ciddi)` : ''}:`}
+          </p>
+
+          <ul className="space-y-2 mb-3">
+            {collisions.map((collision, idx) => (
+              <li key={`${collision.questionKey}-${idx}`} className="flex items-start gap-2">
+                <span className={`text-xs font-bold px-1.5 py-0.5 rounded mt-0.5 flex-shrink-0 ${
+                  collision.severity === 'critical'
+                    ? 'bg-red-200 dark:bg-red-900 text-red-800 dark:text-red-200'
+                    : 'bg-orange-200 dark:bg-orange-900 text-orange-800 dark:text-orange-200'
+                }`}>
+                  {collision.severity === 'critical'
+                    ? (locale === 'en' ? 'CRITICAL' : 'KRİTİK')
+                    : (locale === 'en' ? 'SERIOUS' : 'CİDDİ')}
+                </span>
+                <span className="text-sm text-red-700 dark:text-red-300">
+                  {locale === 'en' ? collision.descriptionEn : collision.descriptionTr}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          <p className="text-xs text-red-500 dark:text-red-400 italic">
+            {locale === 'en'
+              ? 'These are areas where research shows compromise is rarely sustainable long-term. The overall score reflects this reality.'
+              : 'Bunlar, araştırmaların uzlaşmanın nadiren uzun vadeli sürdürülebilir olduğunu gösterdiği alanlardır. Genel puan bu gerçeği yansıtmaktadır.'}
+          </p>
+        </div>
+      </div>
+    </Card>
   );
 }
 
