@@ -12,6 +12,7 @@ import type { CategoryId } from '@/lib/types/quiz';
 interface QuizCategoryNavProps {
   onNavigate: (catIndex: number) => void;
   currentCategoryIndex: number;
+  mode?: 'desktop' | 'mobile' | 'both';
 }
 
 function getCategoryStatus(
@@ -37,6 +38,7 @@ function StatusIcon({ status }: { status: 'not-started' | 'in-progress' | 'compl
 export default function QuizCategoryNav({
   onNavigate,
   currentCategoryIndex,
+  mode = 'both',
 }: QuizCategoryNavProps) {
   const { locale } = useLocale();
   const { progress } = useQuizStore();
@@ -97,13 +99,13 @@ export default function QuizCategoryNav({
   // ── Mobile floating button + bottom drawer ──
   const MobileNav = () => (
     <>
-      {/* FAB */}
+      {/* FAB — positioned bottom-left to avoid overlap with Next button (bottom-right) */}
       <button
         onClick={() => setDrawerOpen(true)}
-        className="fixed bottom-6 right-4 z-40 w-12 h-12 rounded-full bg-primary-600 shadow-lg flex items-center justify-center text-white hover:bg-primary-700 transition-colors md:hidden"
+        className="fixed bottom-6 left-4 z-40 w-11 h-11 rounded-full bg-primary-600 shadow-lg flex items-center justify-center text-white hover:bg-primary-700 transition-colors md:hidden"
         aria-label={locale === 'en' ? 'Quiz categories' : 'Test kategorileri'}
       >
-        <LayoutGrid size={20} />
+        <LayoutGrid size={18} />
       </button>
 
       {/* Bottom sheet */}
@@ -155,8 +157,8 @@ export default function QuizCategoryNav({
 
   // ── Desktop sidebar ──
   const DesktopSidebar = () => (
-    <div className={`hidden md:flex flex-col transition-all duration-300 ${sidebarCollapsed ? 'w-8' : 'w-52'} flex-shrink-0`}>
-      <div className="sticky top-24">
+    <div className={`hidden md:flex flex-col transition-all duration-300 ${sidebarCollapsed ? 'w-10' : 'w-56'} flex-shrink-0 border-r border-sand-100 dark:border-sand-800 bg-white/50 dark:bg-sand-950/50`}>
+      <div className="sticky top-20 px-2 pt-4">
         {/* Collapse toggle */}
         <button
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -186,8 +188,8 @@ export default function QuizCategoryNav({
 
   return (
     <>
-      <DesktopSidebar />
-      <MobileNav />
+      {(mode === 'desktop' || mode === 'both') && <DesktopSidebar />}
+      {(mode === 'mobile' || mode === 'both') && <MobileNav />}
     </>
   );
 }

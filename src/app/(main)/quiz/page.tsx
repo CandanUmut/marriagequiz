@@ -394,64 +394,76 @@ function QuizContent() {
   );
 
   return (
-    <>
-    {/* Category navigation sidebar (desktop) + mobile FAB */}
-    <QuizCategoryNav
-      onNavigate={handleNavigateToCategory}
-      currentCategoryIndex={progress.currentCategoryIndex}
-    />
-    <QuizShell
-      currentCategory={currentCatId}
-      overallProgress={isEditMode ? categoryProgress : overallProgress}
-      categoryProgress={categoryProgress}
-      questionNumber={progress.currentQuestionIndex + 1}
-      totalQuestions={currentQuestions.length}
-      onNavigateCategory={handleNavigateToCategory}
-    >
-      {/* Edit mode: Back to Results button */}
-      {isEditMode && (
-        <div className="mb-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={finishEditMode}
-          >
-            <ArrowLeft size={16} className="mr-1" />
-            {t.common.backToResults}
-          </Button>
-        </div>
-      )}
+    <div className="flex min-h-screen">
+      {/* Desktop sidebar */}
+      <QuizCategoryNav
+        onNavigate={handleNavigateToCategory}
+        currentCategoryIndex={progress.currentCategoryIndex}
+        mode="desktop"
+      />
 
-      <AnimatePresence mode="wait">
-        <QuestionCard
-          key={currentQuestion.id}
-          question={currentQuestion}
-          value={existingAnswer?.value}
-          dealBreaker={existingAnswer?.dealBreaker}
-          onAnswer={handleAnswer}
+      {/* Main quiz area */}
+      <div className="flex-1 min-w-0">
+        <QuizShell
+          currentCategory={currentCatId}
+          overallProgress={isEditMode ? categoryProgress : overallProgress}
+          categoryProgress={categoryProgress}
           questionNumber={progress.currentQuestionIndex + 1}
           totalQuestions={currentQuestions.length}
-          flagReason={flagForCurrentQuestion?.reasonEn}
-          flagReasonTr={flagForCurrentQuestion?.reasonTr}
-        />
-      </AnimatePresence>
+          onNavigateCategory={handleNavigateToCategory}
+        >
+          {/* Edit mode: Back to Results button */}
+          {isEditMode && (
+            <div className="mb-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={finishEditMode}
+              >
+                <ArrowLeft size={16} className="mr-1" />
+                {t.common.backToResults}
+              </Button>
+            </div>
+          )}
 
-      <QuizNavigation
-        onPrev={handlePrev}
-        onNext={handleNext}
-        onSkip={handleNext}
-        canPrev={progress.currentQuestionIndex > 0}
-        canNext={true}
-        isLastQuestion={
-          isEditMode
-            ? progress.currentQuestionIndex >= currentQuestions.length - 1
-            : (progress.currentQuestionIndex >= currentQuestions.length - 1 &&
-               progress.currentCategoryIndex >= selectedCategories.length - 1)
-        }
-        hasAnswer={!!existingAnswer}
+          <AnimatePresence mode="wait">
+            <QuestionCard
+              key={currentQuestion.id}
+              question={currentQuestion}
+              value={existingAnswer?.value}
+              dealBreaker={existingAnswer?.dealBreaker}
+              onAnswer={handleAnswer}
+              questionNumber={progress.currentQuestionIndex + 1}
+              totalQuestions={currentQuestions.length}
+              flagReason={flagForCurrentQuestion?.reasonEn}
+              flagReasonTr={flagForCurrentQuestion?.reasonTr}
+            />
+          </AnimatePresence>
+
+          <QuizNavigation
+            onPrev={handlePrev}
+            onNext={handleNext}
+            onSkip={handleNext}
+            canPrev={progress.currentQuestionIndex > 0}
+            canNext={true}
+            isLastQuestion={
+              isEditMode
+                ? progress.currentQuestionIndex >= currentQuestions.length - 1
+                : (progress.currentQuestionIndex >= currentQuestions.length - 1 &&
+                   progress.currentCategoryIndex >= selectedCategories.length - 1)
+            }
+            hasAnswer={!!existingAnswer}
+          />
+        </QuizShell>
+      </div>
+
+      {/* Mobile FAB only */}
+      <QuizCategoryNav
+        onNavigate={handleNavigateToCategory}
+        currentCategoryIndex={progress.currentCategoryIndex}
+        mode="mobile"
       />
-    </QuizShell>
-    </>
+    </div>
   );
 }
 
