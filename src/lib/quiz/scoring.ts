@@ -344,6 +344,101 @@ function generateTypeDescription(
   };
 }
 
+export interface FlaggedQuestion {
+  questionId: string;
+  reasonEn: string;
+  reasonTr: string;
+}
+
+/**
+ * Return a list of question IDs (with reasons) that contributed to a low
+ * authenticity score in the given category. Used to highlight them when
+ * the user returns to the quiz for review.
+ */
+export function getFlaggedQuestions(
+  categoryId: CategoryId,
+  answers: Record<string, QuizAnswer>,
+): FlaggedQuestion[] {
+  const questions = questionsByCategory[categoryId] || [];
+  const flagged: FlaggedQuestion[] = [];
+
+  // 1. Deal-breaker marked but value is low (< 3) — inconsistent
+  for (const q of questions) {
+    const answer = answers[q.id];
+    if (!answer) continue;
+    const val = typeof answer.value === 'number' ? answer.value : null;
+    if (q.dealBreakerFollowUp && answer.dealBreaker && val !== null && val < 3) {
+      flagged.push({
+        questionId: q.id,
+        reasonEn: "You marked this as a deal-breaker but your answer suggests it's not a strong preference — that's an inconsistency worth reviewing.",
+        reasonTr: 'Bunu kırmızı çizgi olarak işaretlediniz, ancak cevabınız güçlü bir tercih olmadığını gösteriyor — incelemeye değer bir tutarsızlık.',
+      });
+    }
+  }
+
+  // 2. Honesty pair questions with large difference
+  const pairs = new Map<string, Question[]>();
+  for (const q of questions) {
+    if (q.honestyPairId) {
+      const existing = pairs.get(q.honestyPairId) || [];
+      existing.push(q);
+      pairs.set(q.honestyPairId, existing);
+    }
+  }
+  pairs.forEach((pairedQuestions) => {
+    if (pairedQuestions.length < 2) return;
+    const vals = pairedQuestions.map((q) => {
+      const a = answers[q.id];
+      return a && typeof a.value === 'number' ? a.value : null;
+    });
+    if (vals[0] !== null && vals[1] !== null && Math.abs(vals[0]! - vals[1]!) > 3) {
+      pairedQuestions.forEach((q) => {
+        if (!flagged.find((f) => f.questionId === q.id)) {
+          flagged.push({
+            questionId: q.id,
+            reasonEn: 'This answer seems inconsistent with another answer about the same topic in this category.',
+            reasonTr: 'Bu cevap, bu kategorideki aynı konuyla ilgili başka bir cevapla tutarsız görünüyor.',
+          });
+        }
+      });
+    }
+  });
+
+  // 3. Social desirability — SD-flagged question answered with extreme high value (≥ 6)
+  for (const q of questions) {
+    if (!q.socialDesirabilityFlag) continue;
+    const answer = answers[q.id];
+    if (!answer) continue;
+    const val = typeof answer.value === 'number' ? answer.value : null;
+    if (val !== null && val >= 6) {
+      if (!flagged.find((f) => f.questionId === q.id)) {
+        flagged.push({
+          questionId: q.id,
+          reasonEn: 'You chose the most ideal answer here. Consider whether this reflects your reality or an idealized version of yourself.',
+          reasonTr: 'Burada en ideal cevabı seçtiniz. Bunun gerçekliğinizi mi yoksa ideal benliğinizi mi yansıttığını düşünün.',
+        });
+      }
+    }
+  }
+
+  return flagged;
+}
+
+/**
+ * Return flagged question IDs across ALL categories, grouped by category.
+ */
+export function getAllFlaggedQuestions(
+  selectedCategories: CategoryId[],
+  answers: Record<string, QuizAnswer>,
+): Record<CategoryId, FlaggedQuestion[]> {
+  const result = {} as Record<CategoryId, FlaggedQuestion[]>;
+  for (const catId of selectedCategories) {
+    const flags = getFlaggedQuestions(catId, answers);
+    if (flags.length > 0) result[catId] = flags;
+  }
+  return result;
+}
+
 /**
  * Detect blind spots — where stated importance doesn't match answer patterns.
  */

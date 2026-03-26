@@ -122,27 +122,36 @@ function buildCollisionDescription(
 }
 
 /**
- * Calculate the hard score ceiling based on deal-breaker collisions.
+ * Apply a multiplicative penalty to the base score based on deal-breaker collisions.
+ * Unlike a hard ceiling, this preserves score differentiation:
+ *   - A couple who only disagrees on one deal-breaker gets a meaningfully different
+ *     score from a couple who disagrees on everything.
+ *
+ * Penalty rates:
+ *   - critical collision: baseScore × 0.45
+ *   - serious collision:  baseScore × 0.65
+ *   - Multiple collisions multiply: 2 criticals → baseScore × 0.45 × 0.45 = × 0.20
+ *
+ * Floor at 5 so "answered quiz" is always distinguishable from "error state".
  */
-function getScoreCeiling(collisions: DealBreakerCollision[]): number {
-  if (collisions.length === 0) return 100;
+function applyDealBreakerPenalty(
+  baseScore: number,
+  collisions: DealBreakerCollision[],
+): number {
+  if (collisions.length === 0) return Math.round(baseScore);
 
-  const criticalCount = collisions.filter((c) => c.severity === 'critical').length;
-  const seriousCount = collisions.filter((c) => c.severity === 'serious').length;
+  let penaltyMultiplier = 1.0;
 
-  // Calculate ceiling from critical collisions
-  let criticalCeiling = 100;
-  if (criticalCount >= 3) criticalCeiling = 20;
-  else if (criticalCount === 2) criticalCeiling = 30;
-  else if (criticalCount === 1) criticalCeiling = 45;
+  for (const collision of collisions) {
+    if (collision.severity === 'critical') {
+      penaltyMultiplier *= 0.45;
+    } else if (collision.severity === 'serious') {
+      penaltyMultiplier *= 0.65;
+    }
+  }
 
-  // Calculate ceiling from serious collisions
-  let seriousCeiling = 100;
-  if (seriousCount >= 2) seriousCeiling = 50;
-  else if (seriousCount === 1) seriousCeiling = 60;
-
-  // Use the lowest applicable ceiling
-  return Math.min(criticalCeiling, seriousCeiling);
+  const penalizedScore = baseScore * penaltyMultiplier;
+  return Math.max(5, Math.round(penalizedScore));
 }
 
 // ─── LAYER 2: Category-Level Distance-Based Scoring ────────────────
@@ -391,7 +400,6 @@ export function calculateCompatibility(
     safeAnswersA,
     safeAnswersB,
   );
-  const scoreCeiling = getScoreCeiling(collisions);
 
   // Step 2: Calculate per-category scores
   const dimensionAlignments: DimensionAlignment[] = [];
@@ -418,8 +426,13 @@ export function calculateCompatibility(
 
   const rawScore = totalWeight > 0 ? (weightedSum / totalWeight) * 100 : 0;
 
-  // Step 4: Apply deal-breaker ceiling
-  const finalScore = Math.min(Math.round(rawScore), scoreCeiling);
+  // Step 4: Apply multiplicative deal-breaker penalty (preserves score differentiation)
+  const finalScore = applyDealBreakerPenalty(rawScore, collisions);
+
+  // Represent penalty factor as percentage for display (100 = no penalty applied)
+  const scoreCeiling = collisions.length === 0
+    ? 100
+    : Math.round(collisions.reduce((m, c) => m * (c.severity === 'critical' ? 0.45 : 0.65), 1.0) * 100);
 
   // Step 5: Generate honest framing
   const framing = getScoreFraming(finalScore, collisions);

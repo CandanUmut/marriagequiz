@@ -8,13 +8,14 @@ import { useResultStore } from '@/lib/store/resultStore';
 import { useLocale, useTranslations } from '@/lib/i18n/config';
 import { questionsByCategory } from '@/lib/quiz/questions';
 import { categoryDefinitions, categoryOrder } from '@/lib/quiz/categories';
-import { calculateFullProfile } from '@/lib/quiz/scoring';
+import { calculateFullProfile, getFlaggedQuestions } from '@/lib/quiz/scoring';
 import { shouldShowHonestyNudge } from '@/lib/quiz/honesty';
 import QuizShell from '@/components/quiz/QuizShell';
 import QuestionCard from '@/components/quiz/QuestionCard';
 import CategoryIntro from '@/components/quiz/CategoryIntro';
 import QuizNavigation from '@/components/quiz/QuizNavigation';
 import HonestyPrompt from '@/components/quiz/HonestyPrompt';
+import QuizCategoryNav from '@/components/quiz/QuizCategoryNav';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import { Play, RotateCcw, Check, ShieldAlert, ArrowLeft, Send } from 'lucide-react';
@@ -180,11 +181,14 @@ function QuizContent() {
     }
   }, [progress, currentQuestions, selectedCategories, nextCategory, nextQuestion]);
 
-  // Handle jumping to a category from the review screen
-  const handleReviewCategoryClick = useCallback((catIndex: number) => {
+  // Handle jumping to a category from the review screen or nav drawer
+  const handleNavigateToCategory = useCallback((catIndex: number) => {
     setCurrentQuestion(catIndex, 0);
     setPhase('question');
+    setShowCategoryIntro(false);
   }, [setCurrentQuestion]);
+
+  const handleReviewCategoryClick = handleNavigateToCategory;
 
   // Handle final submission from review screen
   const handleSubmitFromReview = useCallback(() => {
@@ -381,13 +385,28 @@ function QuizContent() {
 
   const existingAnswer = getAnswer(currentQuestion.id);
 
+  // In edit mode, compute flagged questions for the current category
+  const flaggedQuestionsForCategory = isEditMode && editCategoryId
+    ? getFlaggedQuestions(editCategoryId, progress.answers)
+    : [];
+  const flagForCurrentQuestion = flaggedQuestionsForCategory.find(
+    (f) => f.questionId === currentQuestion.id
+  );
+
   return (
+    <>
+    {/* Category navigation sidebar (desktop) + mobile FAB */}
+    <QuizCategoryNav
+      onNavigate={handleNavigateToCategory}
+      currentCategoryIndex={progress.currentCategoryIndex}
+    />
     <QuizShell
       currentCategory={currentCatId}
       overallProgress={isEditMode ? categoryProgress : overallProgress}
       categoryProgress={categoryProgress}
       questionNumber={progress.currentQuestionIndex + 1}
       totalQuestions={currentQuestions.length}
+      onNavigateCategory={handleNavigateToCategory}
     >
       {/* Edit mode: Back to Results button */}
       {isEditMode && (
@@ -412,6 +431,8 @@ function QuizContent() {
           onAnswer={handleAnswer}
           questionNumber={progress.currentQuestionIndex + 1}
           totalQuestions={currentQuestions.length}
+          flagReason={flagForCurrentQuestion?.reasonEn}
+          flagReasonTr={flagForCurrentQuestion?.reasonTr}
         />
       </AnimatePresence>
 
@@ -430,6 +451,7 @@ function QuizContent() {
         hasAnswer={!!existingAnswer}
       />
     </QuizShell>
+    </>
   );
 }
 
