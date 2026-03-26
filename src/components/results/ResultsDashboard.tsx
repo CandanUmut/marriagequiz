@@ -14,6 +14,7 @@ import {
   Lightbulb,
   BarChart3,
   Radar,
+  Flag,
 } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -21,7 +22,6 @@ import RadarChart from '@/components/ui/RadarChart';
 import { useLocale } from '@/lib/i18n/config';
 import { categoryDefinitions } from '@/lib/quiz/categories';
 import { generateInsights } from '@/lib/quiz/insights';
-import { detectBlindSpots } from '@/lib/quiz/scoring';
 import { encodeProfile } from '@/lib/export/share';
 import { generatePDF } from '@/lib/export/pdf';
 import { generateShareImage } from '@/lib/export/image';
@@ -29,7 +29,9 @@ import { useQuizStore } from '@/lib/store/quizStore';
 import Link from 'next/link';
 import DimensionCard from './DimensionCard';
 import InsightCard from './InsightCard';
+import { getAllFlaggedQuestions, detectBlindSpots } from '@/lib/quiz/scoring';
 import type { ProfileResult, BlindSpot } from '@/lib/types/results';
+import type { CategoryId } from '@/lib/types/quiz';
 
 interface ResultsDashboardProps {
   profile: ProfileResult;
@@ -128,12 +130,10 @@ export default function ResultsDashboard({ profile }: ResultsDashboardProps) {
   const HonestyIcon = honestyConfig.Icon;
   const authenticityFeedback = getAuthenticityFeedback(profile, locale);
 
-  // Determine the first flagged category for the review link
-  const firstFlaggedCategory = profile.honestyCalibration.flags.length > 0
-    ? profile.dimensions.find((dim) =>
-        dim.consistencyScore < 60 || dim.dealBreaker
-      )?.categoryId || profile.dimensions[0]?.categoryId
-    : null;
+  // Compute flagged questions across all categories
+  const allFlagged = getAllFlaggedQuestions(profile.selectedCategories, quizAnswers);
+  const flaggedCategories = Object.keys(allFlagged) as CategoryId[];
+  const totalFlaggedCount = Object.values(allFlagged).reduce((sum, arr) => sum + arr.length, 0);
 
   // Radar chart data
   const radarData = profile.dimensions.map((dim) => {
@@ -267,15 +267,35 @@ export default function ResultsDashboard({ profile }: ResultsDashboardProps) {
                   ))}
                 </ul>
               )}
-              {firstFlaggedCategory && (
-                <div className="mt-3">
-                  <Link
-                    href={`/quiz?edit=${firstFlaggedCategory}`}
-                    className="inline-flex items-center gap-1.5 text-xs font-medium text-primary-600 dark:text-primary-400 hover:underline"
-                  >
-                    <ShieldAlert className="w-3.5 h-3.5" />
-                    {t.reviewFlagged}
-                  </Link>
+              {flaggedCategories.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs font-medium text-sand-700 dark:text-sand-300">
+                    {locale === 'en'
+                      ? `${totalFlaggedCount} answer${totalFlaggedCount !== 1 ? 's' : ''} flagged across ${flaggedCategories.length} categor${flaggedCategories.length !== 1 ? 'ies' : 'y'}:`
+                      : `${flaggedCategories.length} kategoride ${totalFlaggedCount} cevap işaretlendi:`}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {flaggedCategories.map((catId) => {
+                      const catDef = categoryDefinitions[catId];
+                      const catName = locale === 'en' ? catDef?.nameEn : catDef?.nameTr;
+                      const count = allFlagged[catId]?.length || 0;
+                      return (
+                        <Link
+                          key={catId}
+                          href={`/quiz?edit=${catId}`}
+                          className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors"
+                        >
+                          <Flag className="w-3 h-3" />
+                          {catName} ({count})
+                        </Link>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-sand-500 dark:text-sand-400">
+                    {locale === 'en'
+                      ? 'Click a category to jump directly to flagged questions. Flags will clear when you update your answers.'
+                      : 'İşaretli sorulara doğrudan gitmek için bir kategori tıklayın. Cevaplarınızı güncellediğinizde işaretler silinecektir.'}
+                  </p>
                 </div>
               )}
             </div>

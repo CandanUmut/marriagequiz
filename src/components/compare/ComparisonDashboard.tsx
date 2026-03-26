@@ -11,6 +11,8 @@ import type { ComparisonResult, AsymmetryAlert, CompromiseItem, DealBreakerColli
 
 interface ComparisonDashboardProps {
   comparison: ComparisonResult;
+  labelA?: string; // custom label for Person A (e.g. nickname in matchmaker mode)
+  labelB?: string; // custom label for Person B
 }
 
 function scoreColor(score: number): string {
@@ -52,7 +54,7 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' as const } },
 };
 
-export default function ComparisonDashboard({ comparison }: ComparisonDashboardProps) {
+export default function ComparisonDashboard({ comparison, labelA, labelB }: ComparisonDashboardProps) {
   const { locale } = useLocale();
   const {
     overallAlignment,
@@ -63,6 +65,9 @@ export default function ComparisonDashboard({ comparison }: ComparisonDashboardP
     asymmetryAlerts,
     compromiseRoadmap,
   } = comparison;
+
+  const personALabel = labelA || (locale === 'en' ? 'Person A (You)' : 'A Kişisi (Sen)');
+  const personBLabel = labelB || (locale === 'en' ? 'Person B (Partner)' : 'B Kişisi (Partner)');
 
   // Build radar chart data
   const radarPrimary = dimensionAlignments.map((da) => {
@@ -125,11 +130,11 @@ export default function ComparisonDashboard({ comparison }: ComparisonDashboardP
             {locale === 'en' ? framing.descriptionEn : framing.descriptionTr}
           </p>
 
-          {scoreCeiling < 100 && (
+          {dealBreakerCollisions.length > 0 && (
             <p className="text-xs text-red-500 dark:text-red-400 mt-2 italic">
               {locale === 'en'
-                ? `Score capped at ${scoreCeiling}% due to deal-breaker conflicts.`
-                : `Puan, vazgeçilmez çatışmalar nedeniyle %${scoreCeiling} ile sınırlandırıldı.`}
+                ? `Score reflects deal-breaker penalty (${scoreCeiling}% of base score retained). Each conflict multiplies the reduction.`
+                : `Puan, vazgeçilmez çatışma cezasını yansıtıyor (baz puanın %${scoreCeiling}'i korundu). Her çatışma indirgemeyi çarpar.`}
             </p>
           )}
         </Card>
@@ -149,15 +154,11 @@ export default function ComparisonDashboard({ comparison }: ComparisonDashboardP
           <div className="flex items-center justify-center gap-6 mb-2">
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-primary-500" />
-              <span className="text-xs text-sand-600 dark:text-sand-400">
-                {locale === 'en' ? 'Person A (You)' : 'A Kişisi (Sen)'}
-              </span>
+              <span className="text-xs text-sand-600 dark:text-sand-400">{personALabel}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-accent-500" />
-              <span className="text-xs text-sand-600 dark:text-sand-400">
-                {locale === 'en' ? 'Person B (Partner)' : 'B Kişisi (Partner)'}
-              </span>
+              <span className="text-xs text-sand-600 dark:text-sand-400">{personBLabel}</span>
             </div>
           </div>
 

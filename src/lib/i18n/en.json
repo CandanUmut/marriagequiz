@@ -74,7 +74,11 @@
     "progressSaved": "Progress saved automatically",
     "resumeQuiz": "Resume Quiz",
     "startFresh": "Start Fresh",
-    "categoryIntro": "About this dimension"
+    "categoryIntro": "About this dimension",
+    "allCategories": "All Categories",
+    "expandNavigation": "Expand navigation",
+    "collapseNavigation": "Collapse navigation",
+    "quizCategories": "Quiz categories"
   },
   "results": {
     "title": "Your Profile",
@@ -119,7 +123,16 @@
     "conversationStarters": "Conversation Starters",
     "personA": "Person A",
     "personB": "Person B",
-    "exportComparison": "Export Comparison"
+    "exportComparison": "Export Comparison",
+    "modeMyProfile": "Compare with My Profile",
+    "modeMyProfileSub": "Uses your quiz results",
+    "modeMatchmaker": "Compare Two Profiles",
+    "modeMatchmakerSub": "For families, matchmakers & counselors",
+    "pasteCodeA": "Paste share code for Person A...",
+    "pasteCodeB": "Paste share code for Person B...",
+    "optionalNickname": "Optional nickname (e.g. \"Ahmet\")",
+    "matchmakerPrivacyNote": "Share codes contain category scores only, not individual answers. No personal data is stored on any server.",
+    "newComparison": "New Comparison"
   },
   "about": {
     "title": "About Hayırlısı",

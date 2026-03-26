@@ -6,7 +6,7 @@ import { Question } from '@/lib/types/quiz';
 import { useLocale } from '@/lib/i18n/config';
 import Slider from '@/components/ui/Slider';
 import Toggle from '@/components/ui/Toggle';
-import { Info } from 'lucide-react';
+import { Info, Flag } from 'lucide-react';
 
 interface QuestionCardProps {
   question: Question;
@@ -15,6 +15,8 @@ interface QuestionCardProps {
   onAnswer: (value: number | number[], dealBreaker?: boolean) => void;
   questionNumber: number;
   totalQuestions: number;
+  flagReason?: string; // EN reason why this question is flagged for review
+  flagReasonTr?: string; // TR reason
 }
 
 export default function QuestionCard({
@@ -24,6 +26,8 @@ export default function QuestionCard({
   onAnswer,
   questionNumber,
   totalQuestions,
+  flagReason,
+  flagReasonTr,
 }: QuestionCardProps) {
   const { locale } = useLocale();
   const [showResearch, setShowResearch] = useState(false);
@@ -41,17 +45,34 @@ export default function QuestionCard({
     onAnswer(typeof value === 'number' ? value : 4, checked);
   };
 
+  const displayFlagReason = locale === 'en' ? flagReason : flagReasonTr;
+  const isFlagged = !!flagReason;
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.3 }}
-      className="w-full max-w-2xl mx-auto"
+      className={`w-full max-w-2xl mx-auto ${isFlagged ? 'border-l-4 border-l-amber-400 pl-4' : ''}`}
     >
       <div className="text-xs text-sand-400 mb-2">
         {questionNumber} / {totalQuestions}
       </div>
+
+      {/* Flagged indicator */}
+      {isFlagged && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          className="flex items-start gap-2 mb-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800"
+        >
+          <Flag className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+          <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+            {displayFlagReason}
+          </p>
+        </motion.div>
+      )}
 
       <h2 className="text-xl md:text-2xl font-serif font-medium text-sand-900 dark:text-sand-100 mb-8 leading-relaxed">
         {text}

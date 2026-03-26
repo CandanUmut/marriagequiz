@@ -74,7 +74,11 @@
     "progressSaved": "İlerleme otomatik kaydedildi",
     "resumeQuiz": "Teste Devam Et",
     "startFresh": "Baştan Başla",
-    "categoryIntro": "Bu boyut hakkında"
+    "categoryIntro": "Bu boyut hakkında",
+    "allCategories": "Tüm Kategoriler",
+    "expandNavigation": "Gezinmeyi genişlet",
+    "collapseNavigation": "Gezinmeyi daralt",
+    "quizCategories": "Test kategorileri"
   },
   "results": {
     "title": "Profilin",
@@ -119,7 +123,16 @@
     "conversationStarters": "Konuşma Başlatıcılar",
     "personA": "Kişi A",
     "personB": "Kişi B",
-    "exportComparison": "Karşılaştırmayı Dışa Aktar"
+    "exportComparison": "Karşılaştırmayı Dışa Aktar",
+    "modeMyProfile": "Profilimle Karşılaştır",
+    "modeMyProfileSub": "Kendi test sonuçlarını kullanır",
+    "modeMatchmaker": "İki Profili Karşılaştır",
+    "modeMatchmakerSub": "Aileler, aracılar ve danışmanlar için",
+    "pasteCodeA": "A kişisinin paylaşım kodunu yapıştırın...",
+    "pasteCodeB": "B kişisinin paylaşım kodunu yapıştırın...",
+    "optionalNickname": "İsteğe bağlı takma ad (örn. \"Ahmet\")",
+    "matchmakerPrivacyNote": "Paylaşım kodları yalnızca kategori puanlarını içerir, bireysel cevapları değil. Hiçbir sunucuda kişisel veri saklanmaz.",
+    "newComparison": "Yeni Karşılaştırma"
   },
   "about": {
     "title": "Hayırlısı Hakkında",
