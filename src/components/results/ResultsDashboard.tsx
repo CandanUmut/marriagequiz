@@ -21,7 +21,7 @@ import Button from '@/components/ui/Button';
 import RadarChart from '@/components/ui/RadarChart';
 import { useLocale } from '@/lib/i18n/config';
 import { categoryDefinitions } from '@/lib/quiz/categories';
-import { generateInsights } from '@/lib/quiz/insights';
+import { generateInsights, generateBlindSpots } from '@/lib/quiz/insights';
 import { encodeProfile } from '@/lib/export/share';
 import { generatePDF } from '@/lib/export/pdf';
 import { generateShareImage } from '@/lib/export/image';
@@ -29,8 +29,8 @@ import { useQuizStore } from '@/lib/store/quizStore';
 import Link from 'next/link';
 import DimensionCard from './DimensionCard';
 import InsightCard from './InsightCard';
-import { getAllFlaggedQuestions, detectBlindSpots } from '@/lib/quiz/scoring';
-import type { ProfileResult, BlindSpot } from '@/lib/types/results';
+import { getAllFlaggedQuestions } from '@/lib/quiz/scoring';
+import type { ProfileResult } from '@/lib/types/results';
 import type { CategoryId } from '@/lib/types/quiz';
 
 interface ResultsDashboardProps {
@@ -125,7 +125,7 @@ export default function ResultsDashboard({ profile }: ResultsDashboardProps) {
   const [exportingImage, setExportingImage] = useState(false);
 
   const insights = generateInsights(profile.dimensions);
-  const blindSpots = detectBlindSpots(profile.dimensions);
+  const blindSpots = generateBlindSpots(profile.dimensions);
   const honestyConfig = getHonestyConfig(profile.honestyCalibration.score);
   const HonestyIcon = honestyConfig.Icon;
   const authenticityFeedback = getAuthenticityFeedback(profile, locale);
@@ -432,7 +432,7 @@ export default function ResultsDashboard({ profile }: ResultsDashboardProps) {
 /* Inline BlindSpotCard (internal to this file)                        */
 /* ------------------------------------------------------------------ */
 
-function BlindSpotCard({ spot, locale }: { spot: BlindSpot; locale: 'en' | 'tr' }) {
+function BlindSpotCard({ spot, locale }: { spot: { categoryId: CategoryId; titleEn: string; titleTr: string; descriptionEn: string; descriptionTr: string; statedPreference: number; revealedPattern: number }; locale: 'en' | 'tr' }) {
   const catDef = categoryDefinitions[spot.categoryId];
   const title = locale === 'en' ? spot.titleEn : spot.titleTr;
   const description = locale === 'en' ? spot.descriptionEn : spot.descriptionTr;

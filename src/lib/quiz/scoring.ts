@@ -10,35 +10,46 @@ function generateId(): string {
 }
 
 /**
- * Normalize a raw score to 0-100 range
+ * Get the actual value range for a question based on its type and options.
+ * Scenario/thisOrThat questions have options with explicit values (typically 1-4),
+ * while likert/dealbreaker questions use a 1-7 scale.
  */
-function normalize(value: number, min: number, max: number): number {
-  if (max === min) return 50;
-  return Math.round(((value - min) / (max - min)) * 100);
+function getQuestionRange(q: Question): { min: number; max: number } {
+  if (q.options && q.options.length > 0) {
+    const values = q.options.map((o) => o.value);
+    return { min: Math.min(...values), max: Math.max(...values) };
+  }
+  // Likert, dealbreaker, slider all use 1-7
+  return { min: 1, max: 7 };
+}
+
+/**
+ * Normalize a single answer value to 0-1 based on its question's actual range.
+ */
+function normalizeAnswer(val: number, q: Question): number {
+  const range = getQuestionRange(q);
+  if (range.max === range.min) return 0.5;
+  return Math.max(0, Math.min(1, (val - range.min) / (range.max - range.min)));
 }
 
 /**
  * Calculate self-score for a dimension based on answers.
- * Averages all non-dealbreaker question values, normalized to 0-100.
+ * Each answer is normalized to 0-1 based on its question's actual scale,
+ * then averaged and scaled to 0-100.
  */
 export function calculateSelfScore(
   questions: Question[],
   answers: Record<string, QuizAnswer>
 ): number {
-  const values: number[] = [];
+  const normalized: number[] = [];
   for (const q of questions) {
     const answer = answers[q.id];
     if (!answer) continue;
     const val = typeof answer.value === 'number' ? answer.value : 0;
-    values.push(val);
+    normalized.push(normalizeAnswer(val, q));
   }
-  if (values.length === 0) return 50;
-
-  // Likert is 1-7, scenario is 1-4, slider is 1-100, etc.
-  // Normalize based on question types present
-  const avg = values.reduce((a, b) => a + b, 0) / values.length;
-  // Most scales are 1-7, normalize accordingly
-  return normalize(avg, 1, 7);
+  if (normalized.length === 0) return 50;
+  return Math.round((normalized.reduce((a, b) => a + b, 0) / normalized.length) * 100);
 }
 
 /**
@@ -49,29 +60,24 @@ export function calculateImportanceScore(
   questions: Question[],
   answers: Record<string, QuizAnswer>
 ): number {
-  let totalWeight = 0;
-  let count = 0;
+  const scores: number[] = [];
 
   for (const q of questions) {
     const answer = answers[q.id];
     if (!answer) continue;
 
-    const val = typeof answer.value === 'number' ? answer.value : 4;
+    const val = typeof answer.value === 'number' ? answer.value : 0;
 
-    // Deal-breaker questions strongly indicate importance
+    // Deal-breaker questions strongly indicate importance (max score)
     if (answer.dealBreaker) {
-      totalWeight += 7;
-    } else if (q.dealBreakerFollowUp) {
-      // Had the option to mark as deal-breaker but didn't
-      totalWeight += val;
+      scores.push(1.0);
     } else {
-      totalWeight += val;
+      scores.push(normalizeAnswer(val, q));
     }
-    count++;
   }
 
-  if (count === 0) return 50;
-  return normalize(totalWeight / count, 1, 7);
+  if (scores.length === 0) return 50;
+  return Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 100);
 }
 
 /**
@@ -83,28 +89,30 @@ export function calculateFlexibilityScore(
   questions: Question[],
   answers: Record<string, QuizAnswer>
 ): number {
-  let flexTotal = 0;
-  let count = 0;
+  const scores: number[] = [];
 
   for (const q of questions) {
     const answer = answers[q.id];
     if (!answer) continue;
 
-    const val = typeof answer.value === 'number' ? answer.value : 4;
+    const val = typeof answer.value === 'number' ? answer.value : 0;
 
-    // Deal-breakers reduce flexibility
+    // Deal-breakers = minimum flexibility
     if (answer.dealBreaker) {
-      flexTotal += 1;
+      scores.push(0);
     } else {
-      // Moderate answers (3-5 on 1-7) indicate flexibility
-      const distanceFromCenter = Math.abs(val - 4);
-      flexTotal += 7 - distanceFromCenter * 2;
+      // Flexibility = how close the answer is to the midpoint of the question's scale
+      const range = getQuestionRange(q);
+      const center = (range.min + range.max) / 2;
+      const maxDist = (range.max - range.min) / 2;
+      const distance = Math.abs(val - center);
+      // 1.0 at center, 0.0 at extremes
+      scores.push(maxDist > 0 ? 1 - distance / maxDist : 0.5);
     }
-    count++;
   }
 
-  if (count === 0) return 50;
-  return normalize(flexTotal / count, 1, 7);
+  if (scores.length === 0) return 50;
+  return Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 100);
 }
 
 /**
@@ -193,9 +201,21 @@ export function calculateConsistencyScore(
     }
   });
 
-  // 4. Extreme responding check
-  const extremeCount = answeredValues.filter((v) => v === 1 || v === 7).length;
-  const extremeRatio = extremeCount / answeredValues.length;
+  // 4. Extreme responding check — only count likert/dealbreaker questions (1-7 scale)
+  // Scenario questions (1-4 scale) selecting 1 or 4 is a valid categorical choice, not "extreme"
+  const likertValues: number[] = [];
+  for (const q of questions) {
+    const answer = answers[q.id];
+    if (!answer) continue;
+    const val = typeof answer.value === 'number' ? answer.value : null;
+    if (val === null) continue;
+    // Only flag extreme responding on 1-7 scale questions (likert, dealbreaker, slider)
+    if (!q.options || q.options.length === 0) {
+      likertValues.push(val);
+    }
+  }
+  const extremeCount = likertValues.filter((v) => v === 1 || v === 7).length;
+  const extremeRatio = likertValues.length > 0 ? extremeCount / likertValues.length : 0;
   if (extremeRatio > 0.6) {
     score -= 10;
   }
@@ -220,9 +240,11 @@ export function calculateSocialDesirabilityScore(
   for (const q of sdQuestions) {
     const answer = answers[q.id];
     if (!answer) continue;
-    const val = typeof answer.value === 'number' ? answer.value : 4;
+    const val = typeof answer.value === 'number' ? answer.value : 0;
     // High values on SD questions suggest idealized answering
-    if (val >= 6) {
+    // Use per-question normalization to handle different scales (likert 1-7, scenario 1-4)
+    const normalized = normalizeAnswer(val, q);
+    if (normalized >= 0.8) {
       highCount++;
       flags.push(q.id);
     }
@@ -232,21 +254,25 @@ export function calculateSocialDesirabilityScore(
   // Lower score means more social desirability bias
   const score = sdQuestions.length > 0 ? Math.round((1 - highCount / sdQuestions.length) * 100) : 100;
 
-  // Compute extreme and midpoint ratios across all answered questions
-  const answeredValues: number[] = [];
+  // Compute extreme and midpoint ratios across likert-scale questions only
+  // Scenario/categorical questions are excluded — selecting 1 or max is a valid choice
+  const likertValues: number[] = [];
   for (const q of questions) {
     const answer = answers[q.id];
     if (!answer) continue;
     const val = typeof answer.value === 'number' ? answer.value : null;
-    if (val !== null) answeredValues.push(val);
+    if (val === null) continue;
+    if (!q.options || q.options.length === 0) {
+      likertValues.push(val);
+    }
   }
 
-  const extremeCount = answeredValues.filter((v) => v === 1 || v === 7).length;
-  const midpointCount = answeredValues.filter((v) => v >= 3 && v <= 5).length;
-  const total = answeredValues.length || 1; // avoid division by zero
+  const likertTotal = likertValues.length || 1;
+  const extremeCount = likertValues.filter((v) => v === 1 || v === 7).length;
+  const midpointCount = likertValues.filter((v) => v >= 3 && v <= 5).length;
 
-  const extremeRatio = Math.round((extremeCount / total) * 100) / 100;
-  const midpointRatio = Math.round((midpointCount / total) * 100) / 100;
+  const extremeRatio = Math.round((extremeCount / likertTotal) * 100) / 100;
+  const midpointRatio = Math.round((midpointCount / likertTotal) * 100) / 100;
 
   return { score, flags, socialDesirabilityBias: sdBias, extremeRatio, midpointRatio };
 }

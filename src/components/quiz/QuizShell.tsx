@@ -72,10 +72,9 @@ export default function QuizShell({
         </div>
       </div>
 
-      {/* Quiz content area with sidebar */}
-      <div className="max-w-5xl mx-auto px-4 py-8 md:py-16 flex gap-6">
-        {/* Main content */}
-        <main className="flex-1 max-w-2xl mx-auto md:mx-0">
+      {/* Quiz content area */}
+      <div className="max-w-2xl mx-auto px-4 py-8 md:py-12">
+        <main>
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -87,7 +86,7 @@ export default function QuizShell({
       </div>
 
       {/* Auto-save indicator */}
-      <div className="fixed bottom-4 right-20 md:right-4 text-xs text-sand-400 flex items-center gap-1">
+      <div className="fixed bottom-2 left-1/2 -translate-x-1/2 md:bottom-4 md:right-4 md:left-auto md:translate-x-0 text-xs text-sand-400 flex items-center gap-1">
         <div className="w-2 h-2 rounded-full bg-green-400" />
         {locale === 'en' ? 'Progress saved' : 'İlerleme kaydedildi'}
       </div>
