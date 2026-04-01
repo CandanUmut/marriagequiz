@@ -13,6 +13,8 @@ import type { CategoryWeight } from '@/lib/types/quiz';
 
 interface DimensionCardProps {
   dimension: DimensionScore;
+  answeredCount?: number;
+  totalQuestionCount?: number;
 }
 
 const weightConfig: Record<CategoryWeight, { labelEn: string; labelTr: string; className: string }> = {
@@ -63,7 +65,7 @@ function getIcon(iconName: string) {
   return icons[iconName] || LucideIcons.Circle;
 }
 
-export default function DimensionCard({ dimension }: DimensionCardProps) {
+export default function DimensionCard({ dimension, answeredCount, totalQuestionCount }: DimensionCardProps) {
   const { locale } = useLocale();
   const t = useTranslations();
   const catDef = categoryDefinitions[dimension.categoryId];
@@ -162,6 +164,15 @@ export default function DimensionCard({ dimension }: DimensionCardProps) {
             label={flexibilityLabel}
           />
         </div>
+
+        {/* Partial data indicator */}
+        {answeredCount !== undefined && totalQuestionCount !== undefined && answeredCount < totalQuestionCount && (
+          <p className="text-[10px] text-sand-400 dark:text-sand-500 mt-3 italic">
+            {locale === 'en'
+              ? `Based on ${answeredCount}/${totalQuestionCount} questions answered`
+              : `${totalQuestionCount} sorudan ${answeredCount} tanesine dayalı`}
+          </p>
+        )}
       </Card>
     </motion.div>
   );

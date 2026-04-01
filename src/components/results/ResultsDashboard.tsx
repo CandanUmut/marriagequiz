@@ -21,6 +21,7 @@ import Button from '@/components/ui/Button';
 import RadarChart from '@/components/ui/RadarChart';
 import { useLocale } from '@/lib/i18n/config';
 import { categoryDefinitions } from '@/lib/quiz/categories';
+import { questionsByCategory } from '@/lib/quiz/questions';
 import { generateInsights, generateBlindSpots } from '@/lib/quiz/insights';
 import { encodeProfile } from '@/lib/export/share';
 import { generatePDF } from '@/lib/export/pdf';
@@ -325,9 +326,18 @@ export default function ResultsDashboard({ profile }: ResultsDashboardProps) {
           </h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {profile.dimensions.map((dim) => (
-            <DimensionCard key={dim.categoryId} dimension={dim} />
-          ))}
+          {profile.dimensions.map((dim) => {
+            const catQuestions = questionsByCategory[dim.categoryId] || [];
+            const answered = catQuestions.filter((q) => quizAnswers[q.id] !== undefined).length;
+            return (
+              <DimensionCard
+                key={dim.categoryId}
+                dimension={dim}
+                answeredCount={answered}
+                totalQuestionCount={catQuestions.length}
+              />
+            );
+          })}
         </div>
       </motion.section>
 

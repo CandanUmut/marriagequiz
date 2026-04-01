@@ -26,6 +26,8 @@ export default function ComparePage() {
   const quizAnswers = useQuizStore((s) => s.progress.answers);
   const { setProfileA, setProfileB, setComparisonResult } = useCompareStore();
   const [comparison, setComparison] = useState<ComparisonResult | null>(null);
+  const [compAnswersA, setCompAnswersA] = useState<Record<string, QuizAnswer>>({});
+  const [compAnswersB, setCompAnswersB] = useState<Record<string, QuizAnswer>>({});
   const [mode, setMode] = useState<CompareMode>(currentResult ? 'mine' : 'matchmaker');
 
   // Matchmaker mode state
@@ -40,6 +42,8 @@ export default function ComparePage() {
     if (!currentResult) return;
     setProfileA(currentResult);
     setProfileB(profileB);
+    setCompAnswersA(quizAnswers);
+    setCompAnswersB(answersB);
     const result = calculateCompatibility(currentResult, profileB, quizAnswers, answersB);
     setComparisonResult(result);
     setComparison(result);
@@ -87,6 +91,8 @@ export default function ComparePage() {
       };
       setProfileA(profileA);
       setProfileB(profileB);
+      setCompAnswersA(resultA.answers);
+      setCompAnswersB(resultB.answers);
       const result = calculateCompatibility(profileA, profileB, resultA.answers, resultB.answers);
       setComparisonResult(result);
       setComparison(result);
@@ -103,7 +109,7 @@ export default function ComparePage() {
             ← {locale === 'en' ? 'New Comparison' : 'Yeni Karşılaştırma'}
           </Button>
         </div>
-        <ComparisonDashboard comparison={comparison} labelA={nameA} labelB={nameB} />
+        <ComparisonDashboard comparison={comparison} labelA={nameA} labelB={nameB} answersA={compAnswersA} answersB={compAnswersB} />
       </div>
     );
   }

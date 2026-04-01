@@ -122,15 +122,18 @@ function buildCollisionDescription(
 }
 
 /**
- * Apply a multiplicative penalty to the base score based on deal-breaker collisions.
- * Unlike a hard ceiling, this preserves score differentiation:
- *   - A couple who only disagrees on one deal-breaker gets a meaningfully different
- *     score from a couple who disagrees on everything.
+ * Apply a DISTANCE-BASED penalty for deal-breaker collisions.
  *
- * Penalty rates:
- *   - critical collision: baseScore × 0.45
- *   - serious collision:  baseScore × 0.65
- *   - Multiple collisions multiply: 2 criticals → baseScore × 0.45 × 0.45 = × 0.20
+ * Instead of a binary cliff (collision on/off × fixed multiplier), the penalty
+ * scales smoothly with the answer distance on each deal-breaker question.
+ * This means a small answer change produces a small score change, preventing
+ * the 25-point swings users were seeing.
+ *
+ * Per collision, the penalty interpolates between 1.0 (no penalty at distance=0)
+ * and the severity floor (0.50 for critical, 0.70 for serious) at distance=1.
+ *
+ * Multiple collisions compound multiplicatively but each individual penalty is
+ * softened by the actual distance.
  *
  * Floor at 5 so "answered quiz" is always distinguishable from "error state".
  */
@@ -143,11 +146,23 @@ function applyDealBreakerPenalty(
   let penaltyMultiplier = 1.0;
 
   for (const collision of collisions) {
-    if (collision.severity === 'critical') {
-      penaltyMultiplier *= 0.45;
-    } else if (collision.severity === 'serious') {
-      penaltyMultiplier *= 0.65;
-    }
+    // Compute normalized distance from the stored positions
+    const questions = questionsByCategory[collision.category] || [];
+    const q = questions.find((qu) => qu.id === collision.questionKey);
+    const maxVal = q?.options ? Math.max(...q.options.map((o) => o.value)) : 7;
+    const minVal = q?.options ? Math.min(...q.options.map((o) => o.value)) : 1;
+    const range = maxVal - minVal || 1;
+    const distance = Math.abs(collision.personAPosition - collision.personBPosition) / range;
+
+    // The severity floor is the minimum multiplier at max distance
+    const isMutual = collision.personAIsDealBreaker && collision.personBIsDealBreaker;
+    const severityFloor = collision.severity === 'critical'
+      ? (isMutual ? 0.45 : 0.50)
+      : 0.70;
+
+    // Smooth interpolation: at distance 0 → 1.0 (no penalty), at distance 1 → severityFloor
+    const collisionPenalty = 1 - (distance * (1 - severityFloor));
+    penaltyMultiplier *= collisionPenalty;
   }
 
   const penalizedScore = baseScore * penaltyMultiplier;
@@ -171,9 +186,8 @@ function calculateDimensionAlignment(
   const questions = questionsByCategory[catId] || [];
   const weightDef = dimensionWeights[catId];
 
-  let weightedDistanceSum = 0;
-  let maxPossibleWeightedDistance = 0;
-  let answeredCount = 0;
+  // Collect per-question similarity scores for trimmed-mean calculation
+  const questionSimilarities: { similarity: number; weight: number }[] = [];
 
   for (const q of questions) {
     const ansA = answersA[q.id];
@@ -198,23 +212,41 @@ function calculateDimensionAlignment(
 
     // Deal-breaker amplification: if either person marked this as deal-breaker
     const isDealBreakerQ = ansA.dealBreaker || ansB.dealBreaker;
-    const dealBreakerMultiplier = isDealBreakerQ ? 2.5 : 1.0;
+    const dealBreakerMultiplier = isDealBreakerQ ? 2.0 : 1.0;
 
-    const weightedDistance = distance * importanceWeight * dealBreakerMultiplier;
-    const maxDistance = 1.0 * importanceWeight * dealBreakerMultiplier;
-
-    weightedDistanceSum += weightedDistance;
-    maxPossibleWeightedDistance += maxDistance;
-    answeredCount++;
+    const qWeight = importanceWeight * dealBreakerMultiplier;
+    questionSimilarities.push({
+      similarity: 1 - distance,
+      weight: qWeight,
+    });
   }
 
   // If no questions were answered in common, fall back to raw score comparison
   let similarity: number;
-  if (answeredCount === 0 || maxPossibleWeightedDistance === 0) {
+  if (questionSimilarities.length === 0) {
     const scoreDiff = Math.abs(dimA.selfScore - dimB.selfScore);
     similarity = Math.max(0, 100 - scoreDiff);
+  } else if (questionSimilarities.length >= 5) {
+    // Trimmed mean: remove single highest and lowest outliers to reduce
+    // the impact of one extreme answer change on the category score
+    const sorted = [...questionSimilarities].sort((a, b) => a.similarity - b.similarity);
+    const trimmed = sorted.slice(1, -1);
+    let weightedSum = 0;
+    let totalWeight = 0;
+    for (const qs of trimmed) {
+      weightedSum += qs.similarity * qs.weight;
+      totalWeight += qs.weight;
+    }
+    similarity = totalWeight > 0 ? (weightedSum / totalWeight) * 100 : 50;
   } else {
-    similarity = (1 - weightedDistanceSum / maxPossibleWeightedDistance) * 100;
+    // Too few questions to trim — use regular weighted average
+    let weightedSum = 0;
+    let totalWeight = 0;
+    for (const qs of questionSimilarities) {
+      weightedSum += qs.similarity * qs.weight;
+      totalWeight += qs.weight;
+    }
+    similarity = totalWeight > 0 ? (weightedSum / totalWeight) * 100 : 50;
   }
 
   const alignmentScore = Math.max(0, Math.min(100, Math.round(similarity)));

@@ -1,18 +1,24 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, AlertTriangle, Handshake, Layers, ShieldAlert } from 'lucide-react';
+import { TrendingUp, AlertTriangle, Handshake, Layers, ShieldAlert, Download, Loader2 } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import RadarChart from '@/components/ui/RadarChart';
+import Button from '@/components/ui/Button';
 import { useLocale } from '@/lib/i18n/config';
 import { categoryDefinitions } from '@/lib/quiz/categories';
 import AlignmentBar from '@/components/compare/AlignmentBar';
+import { generateComparisonPDF } from '@/lib/export/comparisonPdf';
 import type { ComparisonResult, AsymmetryAlert, CompromiseItem, DealBreakerCollision } from '@/lib/types/compare';
+import type { QuizAnswer } from '@/lib/types/quiz';
 
 interface ComparisonDashboardProps {
   comparison: ComparisonResult;
-  labelA?: string; // custom label for Person A (e.g. nickname in matchmaker mode)
-  labelB?: string; // custom label for Person B
+  labelA?: string;
+  labelB?: string;
+  answersA?: Record<string, QuizAnswer>;
+  answersB?: Record<string, QuizAnswer>;
 }
 
 function scoreColor(score: number): string {
@@ -54,8 +60,9 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' as const } },
 };
 
-export default function ComparisonDashboard({ comparison, labelA, labelB }: ComparisonDashboardProps) {
+export default function ComparisonDashboard({ comparison, labelA, labelB, answersA, answersB }: ComparisonDashboardProps) {
   const { locale } = useLocale();
+  const [isDownloading, setIsDownloading] = useState(false);
   const {
     overallAlignment,
     scoreCeiling,
@@ -68,6 +75,16 @@ export default function ComparisonDashboard({ comparison, labelA, labelB }: Comp
 
   const personALabel = labelA || (locale === 'en' ? 'Person A (You)' : 'A Kişisi (Sen)');
   const personBLabel = labelB || (locale === 'en' ? 'Person B (Partner)' : 'B Kişisi (Partner)');
+
+  const handleDownloadPDF = async () => {
+    if (!answersA || !answersB) return;
+    setIsDownloading(true);
+    try {
+      await generateComparisonPDF(comparison, answersA, answersB, locale, personALabel, personBLabel);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   // Build radar chart data
   const radarPrimary = dimensionAlignments.map((da) => {
@@ -232,6 +249,27 @@ export default function ComparisonDashboard({ comparison, labelA, labelB }: Comp
               <CompromiseCard key={item.categoryId} item={item} locale={locale} />
             ))}
           </div>
+        </motion.div>
+      )}
+
+      {/* ─── Download PDF ─── */}
+      {answersA && answersB && (
+        <motion.div variants={fadeUp} className="text-center pt-4">
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={handleDownloadPDF}
+            disabled={isDownloading}
+          >
+            {isDownloading ? (
+              <Loader2 size={16} className="mr-2 animate-spin" />
+            ) : (
+              <Download size={16} className="mr-2" />
+            )}
+            {isDownloading
+              ? (locale === 'en' ? 'Generating PDF...' : 'PDF oluşturuluyor...')
+              : (locale === 'en' ? 'Download Comparison Report' : 'Karşılaştırma Raporunu İndir')}
+          </Button>
         </motion.div>
       )}
     </motion.div>

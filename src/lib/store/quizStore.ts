@@ -17,6 +17,7 @@ interface QuizState {
   setCurrentQuestion: (categoryIndex: number, questionIndex: number) => void;
   completeQuiz: () => void;
   resetQuiz: () => void;
+  removeAnswer: (questionId: string) => void;
   getAnswer: (questionId: string) => QuizAnswer | undefined;
   hasExistingProgress: () => boolean;
 }
@@ -121,6 +122,14 @@ export const useQuizStore = create<QuizState>()(
           progress: { ...initialProgress },
           isStarted: false,
           isComplete: false,
+        });
+      },
+
+      removeAnswer: (questionId) => {
+        set((state) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { [questionId]: _, ...rest } = state.progress.answers;
+          return { progress: { ...state.progress, answers: rest } };
         });
       },
 
