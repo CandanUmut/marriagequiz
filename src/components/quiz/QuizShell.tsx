@@ -1,10 +1,11 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import ProgressBar from '@/components/ui/ProgressBar';
 import { useLocale } from '@/lib/i18n/config';
 import { categoryDefinitions } from '@/lib/quiz/categories';
+import { questionsByCategory } from '@/lib/quiz/questions';
 import { useQuizStore } from '@/lib/store/quizStore';
 import { CategoryProgressSegments } from './QuizCategoryNav';
 import { CategoryId } from '@/lib/types/quiz';
@@ -31,6 +32,41 @@ export default function QuizShell({
   const categoryName = locale === 'en' ? catDef?.nameEn : catDef?.nameTr;
   const { progress } = useQuizStore();
 
+  // Calculate total questions and answered count for time estimate
+  const totalAllQuestions = useMemo(
+    () => progress.selectedCategories.reduce((sum, catId) => sum + (questionsByCategory[catId]?.length || 0), 0),
+    [progress.selectedCategories]
+  );
+  const answeredCount = Object.keys(progress.answers).length;
+  const remainingCount = totalAllQuestions - answeredCount;
+  const isLastCategory = progress.currentCategoryIndex >= progress.selectedCategories.length - 1;
+
+  const timeEstimate = useMemo(() => {
+    if (remainingCount <= 0) return locale === 'en' ? 'Last question!' : 'Son soru!';
+    if (isLastCategory && remainingCount <= 3) return locale === 'en' ? 'Almost done!' : 'Neredeyse bitti!';
+
+    // Calculate from actual answer timestamps, capping idle gaps at 30s
+    const timestamps = Object.values(progress.answers)
+      .map((a) => a.timestamp)
+      .sort((a, b) => a - b);
+
+    let effectiveTime = 0;
+    if (timestamps.length >= 3) {
+      for (let i = 1; i < timestamps.length; i++) {
+        const gap = timestamps[i] - timestamps[i - 1];
+        effectiveTime += Math.min(gap, 30000); // cap at 30s
+      }
+      const avgPerQuestion = effectiveTime / (timestamps.length - 1);
+      const estMinutes = Math.ceil((remainingCount * avgPerQuestion) / 60000);
+      if (estMinutes <= 1) return locale === 'en' ? '~1 min left' : '~1 dk kaldı';
+      return locale === 'en' ? `~${estMinutes} min left` : `~${estMinutes} dk kaldı`;
+    }
+
+    // Fallback: ~12s per question
+    const estMinutes = Math.ceil((remainingCount * 12) / 60);
+    return locale === 'en' ? `~${estMinutes} min left` : `~${estMinutes} dk kaldı`;
+  }, [remainingCount, isLastCategory, progress.answers, locale]);
+
   return (
     <div className="min-h-screen bg-sand-50 dark:bg-sand-950">
       {/* Top progress bar */}
@@ -53,9 +89,12 @@ export default function QuizShell({
               >
                 {categoryName}
               </span>
-              <span className="text-xs text-sand-400">
-                {Math.round(overallProgress)}%
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-sand-400">{timeEstimate}</span>
+                <span className="text-xs text-sand-400 tabular-nums">
+                  {overallProgress < 100 ? overallProgress.toFixed(1) : '100'}%
+                </span>
+              </div>
             </div>
             <ProgressBar
               value={overallProgress}

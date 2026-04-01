@@ -38,11 +38,12 @@ export default function QuizNavigation({
       </Button>
 
       <div className="flex items-center gap-2">
-        {onSkip && !hasAnswer && (
+        {onSkip && (
           <Button
             variant="ghost"
             onClick={onSkip}
             size="sm"
+            className="text-sand-400 hover:text-sand-600"
           >
             {t.common.skip}
             <SkipForward size={14} className="ml-1" />

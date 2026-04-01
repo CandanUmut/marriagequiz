@@ -34,6 +34,7 @@ function QuizContent() {
     isStarted,
     startQuiz,
     setAnswer,
+    removeAnswer,
     nextQuestion,
     prevQuestion,
     nextCategory,
@@ -120,6 +121,37 @@ function QuizContent() {
     if (!currentQuestion) return;
     setAnswer(currentQuestion.id, value, dealBreaker);
   }, [currentQuestion, setAnswer]);
+
+  const handleSkip = useCallback(() => {
+    // Remove any existing answer so this question is truly skipped
+    if (currentQuestion) {
+      removeAnswer(currentQuestion.id);
+    }
+    // Then advance (reuses same logic as handleNext)
+    const isLastQuestionInCategory = progress.currentQuestionIndex >= currentQuestions.length - 1;
+    const isLastCategory = progress.currentCategoryIndex >= selectedCategories.length - 1;
+
+    if (isEditMode && isLastQuestionInCategory) {
+      finishEditMode();
+      return;
+    }
+
+    if (isLastQuestionInCategory && isLastCategory) {
+      setPhase('review');
+      return;
+    }
+
+    if (isLastQuestionInCategory) {
+      nextCategory(selectedCategories.length);
+      setPhase('category-intro');
+      setShowCategoryIntro(true);
+    } else {
+      nextQuestion(currentQuestions.length);
+    }
+  }, [
+    currentQuestion, removeAnswer, progress, currentQuestions, selectedCategories,
+    isEditMode, finishEditMode, nextCategory, nextQuestion,
+  ]);
 
   const handleNext = useCallback(() => {
     const isLastQuestionInCategory = progress.currentQuestionIndex >= currentQuestions.length - 1;
@@ -443,7 +475,7 @@ function QuizContent() {
           <QuizNavigation
             onPrev={handlePrev}
             onNext={handleNext}
-            onSkip={handleNext}
+            onSkip={handleSkip}
             canPrev={progress.currentQuestionIndex > 0}
             canNext={true}
             isLastQuestion={
