@@ -345,6 +345,7 @@ const intimacyQuestions: Question[] = [
       { id: 'int-3b', textEn: 'Acts of service and helping out', textTr: 'Hizmet eylemleri ve yardım etmek', value: 2 },
       { id: 'int-3c', textEn: 'Gifts and thoughtful surprises', textTr: 'Hediyeler ve düşünceli sürprizler', value: 3 },
       { id: 'int-3d', textEn: 'Physical touch and closeness', textTr: 'Fiziksel dokunuş ve yakınlık', value: 4 },
+      { id: 'int-3e', textEn: 'Quality time and undivided attention', textTr: 'Nitelikli vakit geçirme ve bölünmemiş ilgi', value: 5 },
     ],
     socialDesirabilityFlag: false,
     dealBreakerFollowUp: false,
