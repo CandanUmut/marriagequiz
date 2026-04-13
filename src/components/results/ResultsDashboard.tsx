@@ -158,11 +158,11 @@ export default function ResultsDashboard({ profile }: ResultsDashboardProps) {
   const handleExportPDF = useCallback(async () => {
     setExportingPDF(true);
     try {
-      await generatePDF(profile, locale);
+      await generatePDF(profile, locale, undefined, quizAnswers);
     } finally {
       setExportingPDF(false);
     }
-  }, [profile, locale]);
+  }, [profile, locale, quizAnswers]);
 
   const handleExportImage = useCallback(async () => {
     setExportingImage(true);
