@@ -3,8 +3,58 @@
 import { ProfileResult } from '@/lib/types/results';
 import { ComparisonResult, DealBreakerCollision } from '@/lib/types/compare';
 import { categoryDefinitions } from '@/lib/quiz/categories';
+import { questionsByCategory } from '@/lib/quiz/questions';
+import { Question, QuizAnswer } from '@/lib/types/quiz';
 
 type Locale = 'en' | 'tr';
+
+/**
+ * Format a quiz answer into a human-readable string for PDF display.
+ */
+function getAnswerDisplay(question: Question, answer: QuizAnswer, locale: Locale): string {
+  const value = answer.value;
+
+  switch (question.type) {
+    case 'likert':
+    case 'dealbreaker': {
+      const num = typeof value === 'number' ? value : 4;
+      const low = locale === 'en' ? question.likertLabels?.lowEn : question.likertLabels?.lowTr;
+      const high = locale === 'en' ? question.likertLabels?.highEn : question.likertLabels?.highTr;
+      const sideLabel = num <= 2 ? low : num >= 6 ? high : undefined;
+      return `${num} / 7${sideLabel ? ` — "${sideLabel}"` : ''}`;
+    }
+
+    case 'slider': {
+      const num = typeof value === 'number' ? value : 4;
+      const min = locale === 'en' ? question.sliderLabels?.minEn : question.sliderLabels?.minTr;
+      const max = locale === 'en' ? question.sliderLabels?.maxEn : question.sliderLabels?.maxTr;
+      const sideLabel = num <= 2 ? min : num >= 6 ? max : undefined;
+      return `${num} / 7${sideLabel ? ` — "${sideLabel}"` : ''}`;
+    }
+
+    case 'scenario':
+    case 'thisOrThat': {
+      const num = typeof value === 'number' ? value : 0;
+      const selected = question.options?.find((o) => o.value === num);
+      return selected ? (locale === 'en' ? selected.textEn : selected.textTr) : String(num);
+    }
+
+    case 'ranking': {
+      const rankings = Array.isArray(value) ? value : [];
+      if (!question.options || rankings.length === 0) return String(value);
+      return rankings
+        .map((v, idx) => {
+          const opt = question.options?.find((o) => o.value === v);
+          const text = opt ? (locale === 'en' ? opt.textEn : opt.textTr) : String(v);
+          return `${idx + 1}. ${text}`;
+        })
+        .join(' | ');
+    }
+
+    default:
+      return String(value);
+  }
+}
 
 /**
  * Generate deal-breaker collision HTML section for PDF exports.
@@ -76,6 +126,7 @@ export async function generatePDF(
   profile: ProfileResult,
   locale: Locale = 'en',
   comparison?: ComparisonResult,
+  answers?: Record<string, QuizAnswer>,
 ): Promise<void> {
   const { default: html2canvas } = await import('html2canvas');
   const { default: jsPDF } = await import('jspdf');
@@ -96,6 +147,62 @@ export async function generatePDF(
   `;
 
   const dealBreakers = profile.dimensions.filter((d) => d.dealBreaker);
+
+  // Build Q&A section if answers are available
+  let qaSection = '';
+  if (answers && Object.keys(answers).length > 0) {
+    const resolvedAnswers = answers;
+    const categoryBlocks = profile.selectedCategories
+      .map((catId) => {
+        const catDef = categoryDefinitions[catId];
+        const catName = t(catDef?.nameEn ?? catId, catDef?.nameTr ?? catId);
+        const catQuestions = questionsByCategory[catId] ?? [];
+        const answeredQuestions = catQuestions.filter((q) => resolvedAnswers[q.id] !== undefined);
+        if (answeredQuestions.length === 0) return '';
+
+        const questionBlocks = answeredQuestions
+          .map((q, idx) => {
+            const ans = resolvedAnswers[q.id];
+            const qText = t(q.textEn, q.textTr);
+            const ansDisplay = getAnswerDisplay(q, ans, locale);
+            const isDb = ans.dealBreaker === true;
+            return `
+              <div style="margin-bottom: 10px; padding: 10px 14px; background: ${isDb ? '#fef9ee' : '#f8f7f4'}; border-radius: 8px; border-left: 3px solid ${isDb ? '#dc4020' : (catDef?.color || '#2d9a89')};">
+                <div style="font-size: 12px; color: #857563; margin-bottom: 4px; font-weight: 500;">
+                  Q${idx + 1}. ${qText}
+                </div>
+                <div style="font-size: 13px; color: #1c4f48; font-weight: 600;">
+                  &#9658; ${ansDisplay}
+                  ${isDb ? `<span style="margin-left: 8px; font-size: 11px; color: #dc4020; font-weight: bold;">&#9888; ${t('Deal-Breaker', 'Kırmızı Çizgi')}</span>` : ''}
+                </div>
+              </div>
+            `;
+          })
+          .join('');
+
+        return `
+          <div style="margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid ${catDef?.color || '#2d9a89'};">
+              <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: ${catDef?.color || '#2d9a89'};"></span>
+              <h3 style="margin: 0; font-size: 15px; font-weight: bold; color: ${catDef?.color || '#2d9a89'};">
+                ${catName}
+              </h3>
+            </div>
+            ${questionBlocks}
+          </div>
+        `;
+      })
+      .join('');
+
+    qaSection = `
+      <div style="margin-bottom: 28px;">
+        <h2 style="margin: 0 0 16px 0; font-size: 20px; color: #2d9a89;">
+          ${t('Questions &amp; Answers', 'Sorular ve Cevaplar')}
+        </h2>
+        ${categoryBlocks}
+      </div>
+    `;
+  }
 
   // Build comparison section if present
   let comparisonSection = '';
@@ -245,6 +352,8 @@ export async function generatePDF(
         })
         .join('')}
     </div>
+
+    ${qaSection}
 
     <div style="margin-bottom: 28px;">
       <h2 style="margin: 0 0 12px 0; font-size: 20px; color: #dc4020;">
